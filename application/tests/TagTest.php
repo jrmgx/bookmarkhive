@@ -49,6 +49,66 @@ class TagTest extends BaseApiTestCase
         $this->assertEquals('Test Tag', $json['name']);
         $this->assertEquals('test-tag', $json['slug']);
         $this->assertTagOwnerResponse($json);
+
+        $response = $this->client->request('POST', '/api/users/me/tags', [
+            'headers' => ['Content-Type' => 'application/ld+json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'name' => '🎸',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        $json = $response->toArray();
+
+        $this->assertEquals('🎸', $json['name']);
+        $this->assertEquals('guitar', $json['slug']);
+        $this->assertTagOwnerResponse($json);
+    }
+
+    public function testCreateTagWithSameNameReturnsExisting(): void
+    {
+        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+
+        $firstResponse = $this->client->request('POST', '/api/users/me/tags', [
+            'headers' => ['Content-Type' => 'application/ld+json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'name' => 'First Tag',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+        $firstJson = dump($firstResponse->toArray());
+        $firstTagId = $firstJson['id'];
+
+        $secondResponse = $this->client->request('POST', '/api/users/me/tags', [
+            'headers' => ['Content-Type' => 'application/ld+json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'name' => 'Second Tag',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+        $secondJson = dump($secondResponse->toArray());
+        $secondTagId = $secondJson['id'];
+
+        $this->assertNotEquals($firstTagId, $secondTagId);
+
+        $thirdResponse = $this->client->request('POST', '/api/users/me/tags', [
+            'headers' => ['Content-Type' => 'application/ld+json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'name' => 'First Tag',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+        $thirdJson = dump($thirdResponse->toArray());
+        $thirdTagId = $thirdJson['id'];
+
+        $this->assertEquals($firstTagId, $thirdTagId, 'Creating a tag with the same name should return the existing tag');
+        $this->assertEquals('First Tag', $thirdJson['name']);
+        $this->assertEquals('first-tag', $thirdJson['slug']);
+        $this->assertTagOwnerResponse($thirdJson);
     }
 
     public function testGetOwnTag(): void

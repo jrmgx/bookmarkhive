@@ -26,6 +26,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             description: 'List own tags',
             provider: UserMeTagProvider::class,
             normalizationContext: ['groups' => ['tag:owner']],
+            paginationItemsPerPage: 1000,
         ),
         new Post(
             description: 'Create new tag',
@@ -77,6 +78,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             provider: UserProfileTagProvider::class,
             description: 'Public tags of user',
             normalizationContext: ['groups' => ['tag:profile']],
+            paginationItemsPerPage: 1000,
         ),
     ],
     collectDenormalizationErrors: true,
@@ -137,7 +139,7 @@ class Tag
 
     public static function slugger(string $name): string
     {
-        $slugger = new AsciiSlugger('en');
+        $slugger = new AsciiSlugger('en')->withEmoji();
 
         return strtolower($slugger->slug($name));
     }

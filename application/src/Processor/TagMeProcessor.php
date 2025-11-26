@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Tag;
 use App\Entity\User;
+use App\Repository\TagRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -22,6 +23,7 @@ final readonly class TagMeProcessor implements ProcessorInterface
         #[Autowire('@api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $processor,
         private Security $security,
+        private TagRepository $tagRepository,
     ) {
     }
 
@@ -38,6 +40,10 @@ final readonly class TagMeProcessor implements ProcessorInterface
 
         // Automatically set the owner to the current logged-in user
         $data->owner = $user;
+
+        if ($existingTag = $this->tagRepository->findOneByOwnerAndName($user, $data->name)) {
+            return $existingTag;
+        }
 
         return $this->processor->process($data, $operation, $uriVariables, $context);
     }
