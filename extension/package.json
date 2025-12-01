@@ -1,0 +1,32 @@
+{
+  "name": "bookmarkhive-extension",
+  "version": "0.0.1",
+  "description": "Browser extension for BookmarkHive",
+  "scripts": {
+    "build": "npm run copy:libs && npm run bundle",
+    "copy:libs": "mkdir -p lib && cp node_modules/tom-select/dist/js/tom-select.complete.min.js lib/tom-select.complete.min.js && cp node_modules/tom-select/dist/css/tom-select.css lib/tom-select.css",
+    "bundle": "npm run bundle:content && npm run bundle:background && npm run bundle:popup && npm run bundle:options",
+    "bundle:content": "esbuild src/content.ts --bundle --format=iife --global-name=ContentScript --outfile=content.js --platform=browser --target=es2017",
+    "bundle:background": "esbuild src/background.ts --bundle --format=iife --global-name=BackgroundScript --outfile=background.js --platform=browser --target=es2017",
+    "bundle:popup": "esbuild src/popup.ts --bundle --format=iife --global-name=PopupScript --outfile=popup.js --platform=browser --target=es2017",
+    "bundle:options": "esbuild src/options.ts --bundle --format=iife --global-name=OptionsScript --outfile=options.js --platform=browser --target=es2017",
+    "watch:content": "esbuild src/content.ts --bundle --format=iife --global-name=ContentScript --outfile=content.js --platform=browser --target=es2017 --watch",
+    "watch:background": "esbuild src/background.ts --bundle --format=iife --global-name=BackgroundScript --outfile=background.js --platform=browser --target=es2017 --watch",
+    "watch:popup": "esbuild src/popup.ts --bundle --format=iife --global-name=PopupScript --outfile=popup.js --platform=browser --target=es2017 --watch",
+    "watch:options": "esbuild src/options.ts --bundle --format=iife --global-name=OptionsScript --outfile=options.js --platform=browser --target=es2017 --watch",
+    "typecheck": "tsc --noEmit",
+    "watch": "npm run copy:libs && concurrently \"npm run watch:content\" \"npm run watch:background\" \"npm run watch:popup\" \"npm run watch:options\"",
+    "clean": "rm -f *.js *.js.map lib/*.js lib/*.js.map"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/node": "^20.0.0",
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.19.12",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "tom-select": "^2.4.3",
+    "webextension-polyfill": "^0.10.0"
+  }
+}
