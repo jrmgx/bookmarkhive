@@ -2,6 +2,9 @@
 /infrastructure/docker/docker-compose.override.yml
 /infrastructure/docker/services/router/certs/*.pem
 
+# Media
+/api/public/storage
+
 # Tools
 .php-cs-fixer.cache
 .twig-cs-fixer.cache

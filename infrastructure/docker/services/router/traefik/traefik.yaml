@@ -5,16 +5,15 @@ global:
 providers:
   docker:
     exposedByDefault: false
-    constraints: "Label(`project-name`,`{{ PROJECT_NAME }}`)"
   file:
     filename: /etc/traefik/dynamic_conf.yaml
 
-# # Uncomment get all DEBUG logs
-#log:
-#    level: "DEBUG"
+# Maximum debug logging enabled
+log:
+    level: "DEBUG"
 
-# # Uncomment to view all access logs
-#accessLog: {}
+# Access logs enabled for all requests
+accessLog: {}
 
 api:
   dashboard: true

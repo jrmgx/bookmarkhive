@@ -18,7 +18,6 @@ function create_default_context(): Context
         'php_version' => '8.4',
         'docker_compose_files' => [
             'docker-compose.yml',
-            'docker-compose.dev.yml',
         ],
         'docker_compose_run_environment' => [],
         'macos' => false,
@@ -85,8 +84,6 @@ function create_ci_context(): Context
             [
                 'docker_compose_files' => [
                     'docker-compose.yml',
-                    // Usually, the following service is not be needed in the CI
-                    'docker-compose.dev.yml',
                     // 'docker-compose.ci.yml',
                 ],
             ],

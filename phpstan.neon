@@ -1,18 +1,20 @@
 parameters:
     level: 8
     paths:
-        - application/src
-        - application/public
+        - api/src
+        - api/public
+        - client/src
+        - client/public
         - castor.php
         - .castor/
     scanFiles:
         - .castor.stub.php
     scanDirectories:
-        - application/vendor
+        - api/vendor
     tmpDir: tools/phpstan/var
     inferPrivatePropertyTypeFromConstructor: true
     symfony:
-        containerXmlPath: 'application/var/cache/dev/App_KernelDevDebugContainer.xml'
+        containerXmlPath: 'api/var/cache/dev/App_KernelDevDebugContainer.xml'
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         - '#^Unused .*?::__construct$#'

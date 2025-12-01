@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpUnused */
+
 use Castor\Attribute\AsRawTokens;
 use Castor\Attribute\AsTask;
 
@@ -9,7 +11,6 @@ use function Castor\import;
 use function Castor\io;
 use function Castor\notify;
 use function Castor\variable;
-use function docker\about;
 use function docker\build;
 use function docker\docker_compose_run;
 use function docker\up;
@@ -32,10 +33,7 @@ function create_default_variables(): array
     return [
         'project_name' => $projectName,
         'root_domain' => "{$projectName}.{$tld}",
-        'extra_domains' => [
-            "api.{$projectName}.{$tld}",
-            "admin.{$projectName}.{$tld}",
-        ],
+        'extra_domains' => [],
         // In order to test docker stater, we need a way to pass different values.
         // You should remove the `$_SERVER` and hardcode your configuration.
         'php_version' => '8.4',
@@ -43,92 +41,85 @@ function create_default_variables(): array
     ];
 }
 
-#[AsTask(description: 'Builds and starts the infrastructure, then install the application (composer, yarn, ...)')]
+#[AsTask(description: 'Builds and starts the infrastructure, then install the api (composer, yarn, ...)')]
 function start(): void
 {
     io()->title('Starting the stack');
 
     // workers_stop();
     build();
-    install();
+    install('api');
+    install('client');
     up(profiles: ['default']); // We can't start worker now, they are not installed
     migrate();
     // workers_start();
 
     notify('The stack is now up and running.');
     io()->success('The stack is now up and running.');
-
-    about();
 }
 
-#[AsTask(description: 'Installs the application (composer, yarn, ...)', namespace: 'app', aliases: ['install'])]
-function install(): void
+#[AsTask(name: 'install', description: 'Installs the api (composer, yarn, ...)', namespace: 'api')]
+function install_api(): void
 {
-    io()->title('Installing the application');
+    install('api');
+}
 
-    $basePath = sprintf('%s/application', variable('root_dir'));
+#[AsTask(name: 'install', description: 'Installs the client (composer, yarn, ...)', namespace: 'client')]
+function install_client(): void
+{
+    install('client');
+}
 
-    if (is_file("{$basePath}/composer.json")) {
+function install(string $frontend): void
+{
+    io()->title("Installing the {$frontend}");
+
+    $localPath = sprintf("%s/{$frontend}", variable('root_dir'));
+    $distPath = "/var/www/{$frontend}";
+
+    if (is_file("{$localPath}/composer.json")) {
         io()->section('Installing PHP dependencies');
-        docker_compose_run('composer install -n --prefer-dist --optimize-autoloader');
+        docker_compose_run('composer install -n --prefer-dist --optimize-autoloader', workDir: $distPath);
     }
-    if (is_file("{$basePath}/yarn.lock")) {
+    if (is_file("{$localPath}/yarn.lock")) {
         io()->section('Installing Node.js dependencies');
-        docker_compose_run('yarn install --frozen-lockfile');
-    } elseif (is_file("{$basePath}/package.json")) {
+        docker_compose_run('yarn install --frozen-lockfile', workDir: $distPath);
+    } elseif (is_file("{$localPath}/package.json")) {
         io()->section('Installing Node.js dependencies');
 
-        if (is_file("{$basePath}/package-lock.json")) {
-            docker_compose_run('npm ci');
+        if (is_file("{$localPath}/package-lock.json")) {
+            docker_compose_run('npm ci', workDir: $distPath);
         } else {
-            docker_compose_run('npm install');
+            docker_compose_run('npm install', workDir: $distPath);
         }
     }
-    if (is_file("{$basePath}/importmap.php")) {
+    if (is_file("{$localPath}/importmap.php")) {
         io()->section('Installing importmap');
-        docker_compose_run('bin/console importmap:install');
+        docker_compose_run('bin/console importmap:install', workDir: $distPath);
     }
 
-    docker_compose_run('bin/console lexik:jwt:generate-keypair --skip-if-exists');
+    docker_compose_run('bin/console lexik:jwt:generate-keypair --skip-if-exists', workDir: $distPath);
 
     qa\install();
 }
 
-#[AsTask(description: 'Clears the application cache', namespace: 'app', aliases: ['cache-clear'])]
-function cache_clear(bool $warm = true): void
-{
-    io()->title('Clearing the application cache');
-
-    docker_compose_run('rm -rf var/cache/');
-
-    if ($warm) {
-        cache_warmup();
-    }
-}
-
-#[AsTask(description: 'Warms the application cache', namespace: 'app', aliases: ['cache-warmup'])]
-function cache_warmup(): void
-{
-    io()->title('Warming the application cache');
-
-    docker_compose_run('bin/console cache:warmup', c: context()->withAllowFailure());
-}
-
-#[AsTask(description: 'Migrates database schema', namespace: 'app:db', aliases: ['migrate'])]
+#[AsTask(description: 'Migrates database schema', namespace: 'api:db', aliases: ['migrate'])]
 function migrate(): void
 {
     io()->title('Migrating the database schema');
 
-    docker_compose_run('bin/console doctrine:database:create --if-not-exists');
-    docker_compose_run('bin/console doctrine:migration:migrate -n --allow-no-migration --all-or-nothing');
+    $distPath = '/var/www/api';
+    docker_compose_run('bin/console doctrine:database:create --if-not-exists', workDir: $distPath);
+    docker_compose_run('bin/console doctrine:migration:migrate -n --allow-no-migration --all-or-nothing', workDir: $distPath);
 }
 
-#[AsTask(description: 'Loads fixtures', namespace: 'app:db', aliases: ['fixtures'])]
+#[AsTask(description: 'Loads fixtures', namespace: 'api:db', aliases: ['fixtures'])]
 function fixtures(): void
 {
     io()->title('Loads fixtures');
 
-    docker_compose_run('bin/console foundry:load-stories -n');
+    $distPath = '/var/www/api';
+    docker_compose_run('bin/console foundry:load-stories -n', workDir: $distPath);
 }
 
 /**
@@ -152,26 +143,9 @@ function builder(#[AsRawTokens] array $params = ['bash']): void
 /**
  * @param array<mixed> $params
  */
-#[AsTask(namespace: 'proxy', description: 'Composer command called in the builder', aliases: ['composer'])]
-function composer(#[AsRawTokens] array $params = []): void
-{
-    docker_compose_run('composer ' . implode(' ', $params));
-}
-
-/**
- * @param array<mixed> $params
- */
-#[AsTask(namespace: 'proxy', description: 'Console command called in the builder', aliases: ['bin/console', 'console'])]
+#[AsTask(namespace: 'api:proxy', description: 'Console command called in the builder', aliases: ['bin/console', 'console'])]
 function console(#[AsRawTokens] array $params = []): void
 {
-    docker_compose_run('bin/console ' . implode(' ', $params));
-}
-
-/**
- * @param array<mixed> $params
- */
-#[AsTask(namespace: 'proxy', description: 'Yarn command called in the builder', aliases: ['yarn'])]
-function yarn(#[AsRawTokens] array $params = []): void
-{
-    docker_compose_run('yarn ' . implode(' ', $params));
+    $basePath = sprintf('%s/api', variable('root_dir'));
+    docker_compose_run('bin/console ' . implode(' ', $params), workDir: $basePath);
 }

@@ -50,7 +50,7 @@ ENV COMPOSER_MEMORY_LIMIT=-1
 
 WORKDIR /var/www
 
-FROM php-base AS frontend
+FROM php-base AS common
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -63,10 +63,27 @@ RUN apt-get update \
 
 RUN useradd -s /bin/false nginx
 
-COPY frontend/php-configuration /etc/php/${PHP_VERSION}
-COPY frontend/etc/nginx/. /etc/nginx/
+FROM common AS api
+
+COPY api/php-configuration /etc/php/${PHP_VERSION}
+COPY api/etc/nginx/. /etc/nginx/
 RUN rm -rf /etc/service/
-COPY frontend/etc/service/. /etc/service/
+COPY api/etc/service/. /etc/service/
+RUN chmod 777 /etc/service/*/supervise/
+
+RUN phpenmod app-default \
+    && phpenmod app-fpm
+
+EXPOSE 80
+
+CMD ["runsvdir", "-P", "/etc/service"]
+
+FROM common AS client
+
+COPY client/php-configuration /etc/php/${PHP_VERSION}
+COPY client/etc/nginx/. /etc/nginx/
+RUN rm -rf /etc/service/
+COPY client/etc/service/. /etc/service/
 RUN chmod 777 /etc/service/*/supervise/
 
 RUN phpenmod app-default \
@@ -147,4 +164,4 @@ RUN cat >> /etc/bash.bashrc <<EOF
 PS1='\[\e[01;33m\]\u \[\e[00;32m\]\w\[\e[0m\] '
 EOF
 
-WORKDIR /var/www/application
+WORKDIR /var/www

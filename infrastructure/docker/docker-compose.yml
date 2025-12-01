@@ -19,6 +19,26 @@ volumes:
     # builder-yarn-data: {}
 
 services:
+    router:
+        build: services/router
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock"
+            - "./services/router/certs:/etc/ssl/certs"
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8080:8080"
+        networks:
+            - default
+        profiles:
+            - default
+
+    gotenberg:
+        image: gotenberg/gotenberg:8.12
+        restart: "no"
+        environment:
+            LOG_LEVEL: DEBUG
+
     postgres:
         image: postgres:16
         environment:
@@ -33,13 +53,15 @@ services:
             retries: 5
         profiles:
             - default
+        ports:
+            - "5432:5432"
 
-    frontend:
+    api:
         build:
             context: services/php
-            target: frontend
+            target: api
             cache_from:
-              - "type=registry,ref=${REGISTRY:-}/frontend:cache"
+                - "type=registry,ref=${REGISTRY:-}/api:cache"
         user: "${USER_ID}:${USER_ID}"
         volumes:
             - "../..:/var/www:cached"
@@ -52,11 +74,35 @@ services:
         labels:
             - "traefik.enable=true"
             - "project-name=${PROJECT_NAME}"
-            - "traefik.http.routers.${PROJECT_NAME}-frontend.rule=Host(${PROJECT_DOMAINS})"
-            - "traefik.http.routers.${PROJECT_NAME}-frontend.tls=true"
-            - "traefik.http.routers.${PROJECT_NAME}-frontend-unsecure.rule=Host(${PROJECT_DOMAINS})"
-            # Comment the next line to be able to access frontend via HTTP instead of HTTPS
-            - "traefik.http.routers.${PROJECT_NAME}-frontend-unsecure.middlewares=redirect-to-https@file"
+            - "traefik.http.routers.${PROJECT_NAME}-api.rule=Host(${PROJECT_DOMAINS}) && (PathPrefix(`/api`) || PathPrefix(`/storage`))"
+            - "traefik.http.routers.${PROJECT_NAME}-api.priority=10"
+            - "traefik.http.routers.${PROJECT_NAME}-api.tls=true"
+            - "traefik.http.routers.${PROJECT_NAME}-api.service=${PROJECT_NAME}-api"
+            - "traefik.http.services.${PROJECT_NAME}-api.loadbalancer.server.port=80"
+
+    client:
+        build:
+            context: services/php
+            target: client
+            cache_from:
+                - "type=registry,ref=${REGISTRY:-}/client:cache"
+        user: "${USER_ID}:${USER_ID}"
+        volumes:
+            - "../..:/var/www:cached"
+            - "../../.home:/home/app:cached"
+        depends_on:
+            postgres:
+                condition: service_healthy
+        profiles:
+            - default
+        labels:
+            - "traefik.enable=true"
+            - "project-name=${PROJECT_NAME}"
+            - "traefik.http.routers.${PROJECT_NAME}-client.rule=Host(${PROJECT_DOMAINS}) && !PathPrefix(`/api`) && !PathPrefix(`/storage`)"
+            - "traefik.http.routers.${PROJECT_NAME}-client.priority=5"
+            - "traefik.http.routers.${PROJECT_NAME}-client.tls=true"
+            - "traefik.http.routers.${PROJECT_NAME}-client.service=${PROJECT_NAME}-client"
+            - "traefik.http.services.${PROJECT_NAME}-client.loadbalancer.server.port=81"
 
     # worker_messenger:
     #     <<: *worker_base

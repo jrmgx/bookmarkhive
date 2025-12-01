@@ -11,54 +11,15 @@ use Symfony\Component\Process\Exception\ExceptionInterface;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
-use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpExceptionInterface;
 
 use function Castor\capture;
 use function Castor\context;
 use function Castor\finder;
 use function Castor\fs;
-use function Castor\http_client;
 use function Castor\io;
 use function Castor\open;
 use function Castor\run;
 use function Castor\variable;
-
-#[AsTask(description: 'Displays some help and available urls for the current project', namespace: '')]
-function about(): void
-{
-    io()->title('About this project');
-
-    io()->comment('Run <comment>castor</comment> to display all available commands.');
-    io()->comment('Run <comment>castor about</comment> to display this project help.');
-    io()->comment('Run <comment>castor help [command]</comment> to display Castor help.');
-
-    io()->section('Available URLs for this project:');
-    $urls = [variable('root_domain'), ...variable('extra_domains')];
-
-    try {
-        $routers = http_client()
-            ->request('GET', \sprintf('http://%s:8080/api/http/routers', variable('root_domain')))
-            ->toArray()
-        ;
-        $projectName = variable('project_name');
-        foreach ($routers as $router) {
-            if (!preg_match("{^{$projectName}-(.*)@docker$}", $router['name'])) {
-                continue;
-            }
-            if ("frontend-{$projectName}" === $router['service']) {
-                continue;
-            }
-            if (!preg_match('{^Host\(`(?P<hosts>.*)`\)$}', $router['rule'], $matches)) {
-                continue;
-            }
-            $hosts = explode('`) || Host(`', $matches['hosts']);
-            $urls = [...$urls, ...$hosts];
-        }
-    } catch (HttpExceptionInterface) {
-    }
-
-    io()->listing(array_map(fn ($url) => "https://{$url}", array_unique($urls)));
-}
 
 #[AsTask(description: 'Opens the project in your browser', namespace: '', aliases: ['open'])]
 function open_project(): void
@@ -386,6 +347,8 @@ function docker_compose(array $subCommand, ?Context $c = null, array $profiles =
     }
 
     $command = array_merge($command, $subCommand);
+
+    io()->writeln('<fg=cyan>Will execute: ' . implode(' ', $command) . "\n</>");
 
     return run($command, context: $c);
 }

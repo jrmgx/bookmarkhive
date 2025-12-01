@@ -51,7 +51,7 @@ function phpunit(#[AsRawTokens] array $rawTokens = []): int
 {
     io()->section('Running PHPUnit...');
 
-    return docker_exit_code('bin/phpunit ' . implode(' ', $rawTokens));
+    return docker_exit_code('bin/phpunit ' . implode(' ', $rawTokens), workDir: '/var/www/api');
 }
 
 #[AsTask(description: 'Runs PHPStan', aliases: ['phpstan'])]
