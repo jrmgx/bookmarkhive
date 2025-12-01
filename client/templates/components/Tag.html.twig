@@ -1,0 +1,12 @@
+<div {{ attributes }}>
+    {% set isActive = tag.name in selectedTags|keys %}
+    <div class="d-flex align-items-center mb-2 position-relative tag-hover-edit">
+        <button type="button" class="btn btn-outline-secondary border-0 text-start flex-grow-1 {{ isActive ? 'active' }}" {{ live_action(isActive ? 'deselectTag' : 'selectTag', {tagName: tag.name}) }}>{{ tag.name }}</button>
+        <div class="tag-edit-button position-absolute" style="right: 0">
+            <a href="#" {{ live_action('editTag', {tagName: tag.name}) }}
+                class="btn btn-outline-secondary border-0">
+                <twig:ux:icon name="ph:pencil" />
+            </a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,71 @@
+{% set embeded = layout|default(constant('\\App\\Model\\Tag::LAYOUT_DEFAULT')) == constant('\\App\\Model\\Tag::LAYOUT_EMBEDDED') %}
+{% set modal_id = "bookmark-tag-edit-" ~ bookmark.id %}
+<div class="col-12 my-2 {{ not embeded ? 'col-sm-6 col-md-4 col-xl-3 col-xxl-2' }}" {{ attributes }} {{ stimulus_controller('bookmark') }}>
+    {% set imageStyle %}
+    {% if bookmark.mainImage is defined %}
+        background-image: url({{ bookmark.mainImage.contentUrl }});
+    {% endif %}
+    {% endset %}
+    <div id="bookmark-{{ bookmark.id }}" class="card h-100">
+        <div class="card-img-top bookmark-img flex-shrink-0" style="{{ imageStyle }}">
+            <a target="_blank" class="d-block h-100 w-100" href="{{ bookmark.url }}"></a>
+        </div>
+        <div class="card-body">
+            <div class="card-title">
+                <a target="_blank" class="text-decoration-none" href="{{ bookmark.url }}">{{ bookmark.title }}</a>
+            </div>
+            <div class="py-2">
+                {% for tag in bookmark.tags %}
+                    {% set isActive = selectedTags is defined and tag.name in selectedTags|keys %}
+                    <button class="btn btn-outline-secondary btn-xs {{ isActive ? 'active' }}"
+                        {{ live_action(isActive ? 'deselectTag' : 'selectTag', {tagName: tag.name}) }}>
+                        {{ tag.name }}
+                    </button>
+                {% endfor %}
+                <a class="btn btn-outline-primary btn-xs" href="#" data-bs-toggle="modal" data-bs-target="#{{ modal_id }}">
+                    <twig:ux:icon name="ph:hash-bold" />
+                </a>
+            </div>
+        </div>
+        <div class="card-footer text-body-secondary d-flex align-items-center py-1 pe-0">
+            <div class="fs-small flex-grow-1">{{ bookmark.createdAt|date('d/m/Y') }}</div>
+            <div>
+                <a href="#" class="btn btn-outline-secondary border-0" {{ attributes|raw }}>
+                    <twig:ux:icon name="ph:pencil" />
+                </a>
+                <a href="#" {{ stimulus_action('bookmark', 'share', 'click', {bookmark: bookmark}) }}
+                   class="btn btn-outline-secondary border-0">
+                    <twig:ux:icon name="ph:share-fat" />
+                </a>
+            </div>
+        </div>
+    </div>
+    {# Modal for in-place tag edit #}
+{#    <script> TODO #}
+{#        (function a() {#}
+{#            const myModal = document.getElementById('{{ modal_id }}')#}
+{#            const myInput = document.getElementById('myInput')#}
+{#            myModal.addEventListener('shown.bs.modal', () => {#}
+{#                myInput.focus()#}
+{#            })#}
+{#        })();#}
+{#    </script>#}
+    <div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Edit tag for {{ bookmark.title }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {{ form_start(form) }}
+                {{ form_end(form) }}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" {{ live_action('save') }}>Save changes</button>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>

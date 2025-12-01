@@ -1,0 +1,101 @@
+<div {{ attributes }}>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-primary navbar-height">
+        <div class="container-fluid">
+            <a class="text-white navbar-brand" href="{{ path('index') }}">BookmarkHive</a>
+            <button class="navbar-toggler bookmark-navbar-toggler" type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#offcanvasResponsive"
+                    aria-controls="offcanvasResponsive"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation"
+            >
+                <span class="text-white navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+    <main class="d-flex navbar-height-compensate h-100">
+        <div class="h-100">
+            <div class="offcanvas-md offcanvas-start h-100" tabindex="-1" id="offcanvasResponsive" aria-labelledby="offcanvasResponsiveLabel">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="offcanvasResponsiveLabel">BookmarkHive</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasResponsive" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body h-100 sidebar">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col mt-3">
+                                {% block sidebar %}
+                                    {% if this.loggedIn %}
+                                        <div class="mb-2 fw-bold ">
+                                            Favorite
+                                        </div>
+                                        {% for tag in pinnedTags %}
+                                            <twig:Tag :tag="tag" :key="tag.slug"></twig:Tag>
+                                        {% endfor %}
+
+                                        <div class="mb-2 fw-bold ">
+                                            All
+                                        </div>
+                                        {% for tag in tags %}
+                                            {% if tag not in pinnedTags %}
+                                                <twig:Tag :tag="tag" :key="tag.slug"></twig:Tag>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endblock %}
+                                <div class="sidebar-spacer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid sidebar-left">
+            {# TODO #}
+            {% for type, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="flash-message-container">
+                        <div class="flash-{{ type }}" style="font-weight: bold">
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            {% if not this.loggedIn %}
+                {{ form_start(form, {
+                    attr: {
+                        'data-action': 'live#action:prevent',
+                        'data-live-action-param': 'login',
+                    },
+                }) }}
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Login</h5>
+                        <p class="card-text">
+                            {{ form_row(form.email) }}
+                            {{ form_row(form.password) }}
+                        </p>
+                        {{ form_row(form.submit) }}
+                    </div>
+                </div>
+                {{ form_end(form) }}
+            {% elseif editingTag is not null %}
+                <twig:TagEdit :tag="editingTag"></twig:TagEdit>
+            {% else %}
+                {% if bookmarks|length > 0 %}
+                    <div class="row gx-3">
+                        {% for bookmark in bookmarks %}
+                            <twig:Bookmark :bookmark="bookmark" :key="bookmark.id" :tags="tags"></twig:Bookmark>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center p-5">
+                        <strong>No bookmark matching!</strong>
+                    </div>
+                {% endif %}
+            {% endif %}
+            <div class="mt-1">&nbsp;</div>
+        </div>
+    </main>
+</div>

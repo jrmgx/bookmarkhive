@@ -1,4 +1,4 @@
-# Bookmarkhive
+# BookmarkHive
 
 ## Pitch 
 
@@ -19,8 +19,13 @@ all in a decentralized manner for greater resilience.
 ## Documentation
 
 - 🛠️ [Development](./documentation/Development.md)
+- [Client](./documentation/Client.md)
 - User documentation
 - Limitations
+
+## Attributions
+
+<a href="https://www.flaticon.com/free-icons/bee" title="bee icons">Bee icons created by Eucalyp - Flaticon</a>
 
 ## Licence
 
