@@ -10,3 +10,7 @@ http:
     redirect-to-https:
       redirectScheme:
         scheme: https
+    strip-api-prefix:
+      stripPrefix:
+        prefixes:
+          - /api

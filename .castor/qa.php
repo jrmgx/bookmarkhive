@@ -2,7 +2,7 @@
 
 namespace qa;
 
-// use Castor\Attribute\AsRawTokens;
+use Castor\Attribute\AsArgument;
 use Castor\Attribute\AsOption;
 use Castor\Attribute\AsRawTokens;
 use Castor\Attribute\AsTask;
@@ -56,6 +56,8 @@ function phpunit(#[AsRawTokens] array $rawTokens = []): int
 
 #[AsTask(description: 'Runs PHPStan', aliases: ['phpstan'])]
 function phpstan(
+    #[AsArgument(description: 'Project (api, client)')]
+    ?string $project = null,
     #[AsOption(description: 'Generate baseline file', shortcut: 'b')]
     bool $baseline = false,
 ): int {
@@ -63,12 +65,18 @@ function phpstan(
         install();
     }
 
+    if (null === $project) {
+        return max(phpstan('api'), phpstan('client'));
+    }
+
     io()->section('Running PHPStan...');
 
     $options = $baseline ? '--generate-baseline --allow-empty-baseline' : '';
+
+    $workdir = 'api' === $project ? '/var/www/api' : '/var/www/client';
     $command = \sprintf('phpstan analyse --memory-limit=-1 %s -v', $options);
 
-    return docker_exit_code($command, workDir: '/var/www');
+    return docker_exit_code($command, workDir: $workdir);
 }
 
 #[AsTask(description: 'Fixes Coding Style', aliases: ['cs'])]

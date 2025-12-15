@@ -18,10 +18,12 @@ all in a decentralized manner for greater resilience.
 
 ## Documentation
 
-- 🛠️ [Development](./documentation/Development.md)
-- [Client](./documentation/Client.md)
 - User documentation
+- API
+- [Web Extension](./documentation/WebExtension.md)
+- [Client](./documentation/Client.md)
 - Limitations
+- 🛠️ [Development](./documentation/Development.md)
 
 ## Attributions
 

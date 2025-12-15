@@ -74,7 +74,16 @@ services:
         labels:
             - "traefik.enable=true"
             - "project-name=${PROJECT_NAME}"
-            - "traefik.http.routers.${PROJECT_NAME}-api.rule=Host(${PROJECT_DOMAINS}) && (PathPrefix(`/api`) || PathPrefix(`/storage`))"
+            # Middleware to strip /api prefix
+            - "traefik.http.middlewares.${PROJECT_NAME}-strip-api-prefix.stripPrefix.prefixes=/api"
+            # Route /api/_profiler to api app with /api prefix stripped
+            - "traefik.http.routers.${PROJECT_NAME}-api-profiler.rule=Host(${PROJECT_DOMAINS}) && PathPrefix(`/api/_profiler`)"
+            - "traefik.http.routers.${PROJECT_NAME}-api-profiler.priority=20"
+            - "traefik.http.routers.${PROJECT_NAME}-api-profiler.middlewares=${PROJECT_NAME}-strip-api-prefix"
+            - "traefik.http.routers.${PROJECT_NAME}-api-profiler.tls=true"
+            - "traefik.http.routers.${PROJECT_NAME}-api-profiler.service=${PROJECT_NAME}-api"
+            # Route /api and /storage to api app (excluding /api/_profiler which is handled above)
+            - "traefik.http.routers.${PROJECT_NAME}-api.rule=Host(${PROJECT_DOMAINS}) && (PathPrefix(`/api`) || PathPrefix(`/storage`)) && !PathPrefix(`/api/_profiler`)"
             - "traefik.http.routers.${PROJECT_NAME}-api.priority=10"
             - "traefik.http.routers.${PROJECT_NAME}-api.tls=true"
             - "traefik.http.routers.${PROJECT_NAME}-api.service=${PROJECT_NAME}-api"
