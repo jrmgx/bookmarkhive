@@ -6,7 +6,6 @@ use App\Model\Tag;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -31,7 +30,6 @@ class TagEditType extends AbstractType
                     // 'Read Later' => Tag::LAYOUT_POST,
                 ],
             ])
-            ->add('submit', SubmitType::class)
         ;
     }
 
@@ -39,6 +37,7 @@ class TagEditType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Tag::class,
+            'csrf_protection' => false, // TODO try to fix this
         ]);
     }
 }

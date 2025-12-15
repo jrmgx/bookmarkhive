@@ -1,4 +1,6 @@
-<div {{ attributes }}>
+{% extends 'base.html.twig' %}
+
+{% block body %}
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-primary navbar-height">
         <div class="container-fluid">
             <a class="text-white navbar-brand" href="{{ path('index') }}">BookmarkHive</a>
@@ -24,25 +26,11 @@
                     <div class="container-fluid">
                         <div class="row">
                             <div class="col mt-3">
-                                {% block sidebar %}
-                                    {% if this.loggedIn %}
-                                        <div class="mb-2 fw-bold ">
-                                            Favorite
-                                        </div>
-                                        {% for tag in pinnedTags %}
-                                            <twig:Tag :tag="tag" :key="tag.slug"></twig:Tag>
-                                        {% endfor %}
 
-                                        <div class="mb-2 fw-bold ">
-                                            All
-                                        </div>
-                                        {% for tag in tags %}
-                                            {% if tag not in pinnedTags %}
-                                                <twig:Tag :tag="tag" :key="tag.slug"></twig:Tag>
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endif %}
+                                {% block sidebar %}
+                                    <twig:TagList :tags="tags" :selectedTagSlugs="selectedTagSlugs" />
                                 {% endblock %}
+
                                 <div class="sidebar-spacer"></div>
                             </div>
                         </div>
@@ -62,40 +50,46 @@
                 {% endfor %}
             {% endfor %}
 
-            {% if not this.loggedIn %}
-                {{ form_start(form, {
-                    attr: {
-                        'data-action': 'live#action:prevent',
-                        'data-live-action-param': 'login',
-                    },
-                }) }}
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Login</h5>
-                        <p class="card-text">
-                            {{ form_row(form.email) }}
-                            {{ form_row(form.password) }}
-                        </p>
-                        {{ form_row(form.submit) }}
-                    </div>
-                </div>
-                {{ form_end(form) }}
-            {% elseif editingTag is not null %}
-                <twig:TagEdit :tag="editingTag"></twig:TagEdit>
-            {% else %}
+            {% block main %}
                 {% if bookmarks|length > 0 %}
                     <div class="row gx-3">
                         {% for bookmark in bookmarks %}
-                            <twig:Bookmark :bookmark="bookmark" :key="bookmark.id" :tags="tags"></twig:Bookmark>
+                            <twig:Bookmark :bookmark="bookmark" :layout="layout" :selectedTagSlugs="selectedTagSlugs" />
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center p-5">
-                        <strong>No bookmark matching!</strong>
+                    <div class="row">
+                        <div class="col-12 text-center pt-5">
+                            <strong>No bookmark matching!</strong>
+                        </div>
+                        <div class="col-12 text-center">
+                            <div class="d-flex my-2 flex-wrap justify-content-center" style="padding-left: 3rem">
+                                {% for tag in tags %}
+                                    {% if tag.slug in selectedTagSlugs %}
+                                        <twig:Tag :tag="tag" :selectedTagSlugs="selectedTagSlugs" :showInline="true" />
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                 {% endif %}
-            {% endif %}
+            {% endblock %}
+
             <div class="mt-1">&nbsp;</div>
         </div>
+
+        {% block modal %}
+{# <div class="modal fade" id="bookmark_edit_modal" tabindex="-1" aria-hidden="true"> #}
+{# <div class="modal-dialog modal-fullscreen-sm-down"> #}
+{# <div class="modal-content"> #}
+{# <twig:Turbo:Frame id="bookmark_edit_frame" /> #}
+{# </div> #}
+{# </div> #}
+{# </div> #}
+                        <twig:Turbo:Frame id="tag_edit_frame" />
+
+        {% endblock %}
+
     </main>
-</div>
+
+{% endblock %}

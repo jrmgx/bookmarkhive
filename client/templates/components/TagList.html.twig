@@ -1,0 +1,11 @@
+<div {{ attributes }}>
+    <div class="mb-2 fw-bold">Favorite</div>
+    {% for tag in pinnedTags|sort_tags(selectedTagSlugs) %}
+        <twig:Tag :tag="tag" :selectedTagSlugs="selectedTagSlugs" />
+    {% endfor %}
+    <div class="d-flex align-items-center mb-2 position-relative">
+        <a href="{{ path('tag_list', app.request.query.all) }}"
+           class="btn btn-outline-secondary text-start flex-grow-1">
+        Show all tags{% if pinnedTags|length == 0 %}<br>and choose favorite{% endif %}</a>
+    </div>
+</div>

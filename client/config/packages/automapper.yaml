@@ -1,0 +1,5 @@
+# https://automapper.jolicode.com/latest/bundle/configuration/#configuration-reference
+automapper:
+    mapping:
+        paths:
+            - "%kernel.project_dir%/src/Model"

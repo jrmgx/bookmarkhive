@@ -9,8 +9,8 @@ use Twig\Attribute\AsTwigFilter;
  */
 class FindEmbed
 {
-    #[AsTwigFilter(name: 'embed', isSafe: ['html'])]
-    public static function embed(string $url): ?string
+    #[AsTwigFilter(name: 'find_embed', isSafe: ['html'])]
+    public static function findEmbed(string $url): ?string
     {
         if (preg_match('`youtube\.`i', $url) || preg_match('`youtu\.be`i', $url)) {
             return self::youtubeEmbed($url);
@@ -114,12 +114,21 @@ class FindEmbed
         $uid = uniqid('iframe_');
 
         return <<<HTML
-            <div class="image {$class}" id="{$uid}" style="display: block;height: 100%;cursor: pointer;
-                background-size: cover;background-position: center;background-repeat: no-repeat;background-color: #ffffff;
-                background-image: url({$imagePlaceholder});"></div>
-            <script>document.getElementById("{$uid}").onclick = function() {
-                this.innerHTML = '{$iframe}';
-            }</script>
+            <div class="{$class}" id="{$uid}" style="
+                display: block;
+                height: 100%;
+                cursor: pointer;
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-color: #ffffff;
+                background-image: url({$imagePlaceholder});"
+            ></div>
+            <script>
+                document.getElementById("{$uid}").onclick = function() {
+                    this.parentElement.innerHTML = '{$iframe}';
+                }
+            </script>
             HTML;
     }
 
@@ -128,6 +137,9 @@ class FindEmbed
         return '<iframe class="' . $class . '" src="' . $src . '" frameborder="0" allowfullscreen></iframe>';
     }
 
+    /**
+     * TODO this has to be reworked, respecified.
+     */
     private static function convertAnyBase(string $numberInput, string $fromBaseInput, string $toBaseInput): string
     {
         if ($fromBaseInput === $toBaseInput) {
@@ -145,6 +157,7 @@ class FindEmbed
         if ('0123456789' === $toBaseInput) {
             $returnValue = 0;
             for ($i = 1; $i <= $numberLen; ++$i) {
+                /* @phpstan-ignore-next-line */
                 $returnValue = bcadd((string) $returnValue, bcmul((string) array_search($number[$i - 1], $fromBase, true), bcpow((string) $fromLen, (string) ($numberLen - $i))));
             }
 
@@ -162,6 +175,7 @@ class FindEmbed
         }
 
         while ('0' !== $base10) {
+            /* @phpstan-ignore-next-line */
             $returnValue = $toBase[bcmod($base10, (string) $toLen)] . $returnValue;
             $base10 = bcdiv($base10, (string) $toLen);
         }

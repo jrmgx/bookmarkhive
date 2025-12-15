@@ -1,0 +1,19 @@
+{% extends 'controllers/index.html.twig' %}
+
+{% block sidebar %}
+    <div class="d-flex align-items-center mb-2 position-relative">
+        <a type="button"
+                class="btn btn-secondary border-0 text-start flex-grow-1"
+                href="{{ path('index', app.request.query.all) }}">
+            Back
+        </a>
+    </div>
+{% endblock %}
+
+{% block main %}
+<div class="d-flex my-2 flex-wrap">
+        {% for tag in tags|sort_tags(selectedTagSlugs) %}
+            <twig:Tag :tag="tag" :selectedTagSlugs="selectedTagSlugs" :showInline="true" />
+        {% endfor %}
+    </div>
+{% endblock %}

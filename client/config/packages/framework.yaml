@@ -4,6 +4,7 @@ framework:
 
     # Note that the session will be started ONLY if you read or write from it.
     session: true
+    ide: '%env(SYMFONY_FRAMEWORK_IDE)%'
 
     #esi: true
     #fragments: true

@@ -2,13 +2,15 @@
 
 namespace App\Twig\Components;
 
+use App\Model\Tag as TagModel;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 #[AsTwigComponent]
-class Tag
+class Tag extends AbstractController
 {
-    /**
-     * @var array<mixed> OpenAPI representation of a Tag
-     */
-    public array $tag;
+    public TagModel $tag;
+    /** @var array<string> */
+    public array $selectedTagSlugs = [];
+    public bool $showInline = false;
 }

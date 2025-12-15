@@ -4,7 +4,7 @@ namespace App\Model;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-class UsernamePassword
+class Login
 {
     #[Assert\Email]
     public string $email;

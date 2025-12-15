@@ -8,6 +8,7 @@
         "@symfony/stimulus-bridge": "^3.2.0 || ^4.0.0",
         "@symfony/ux-autocomplete": "file:vendor/symfony/ux-autocomplete/assets",
         "@symfony/ux-live-component": "file:vendor/symfony/ux-live-component/assets",
+        "@symfony/ux-turbo": "file:vendor/symfony/ux-turbo/assets",
         "@symfony/webpack-encore": "^5.1.0",
         "core-js": "^3.38.0",
         "regenerator-runtime": "^0.13.9",
