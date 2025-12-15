@@ -18,51 +18,47 @@ class BookmarkRepository extends ServiceEntityRepository
         parent::__construct($registry, Bookmark::class);
     }
 
-    public function findOneById(string $id): ?Bookmark
+    public function findOneById(string $id): QueryBuilder
     {
-        return $this->createQueryBuilder('b')
-            ->andWhere('b.id = :id')
+        return $this->createQueryBuilder('o')
+            ->andWhere('o.id = :id')
             ->setParameter('id', $id)
-            ->getQuery()
-            ->getOneOrNullResult()
         ;
     }
 
     public function findByOwner(User $owner, bool $onlyPublic): QueryBuilder
     {
-        $qb = $this->createQueryBuilder('b')
-            ->andWhere('b.owner = :owner')
+        $qb = $this->createQueryBuilder('o')
+            ->andWhere('o.owner = :owner')
             ->setParameter('owner', $owner)
-            ->addOrderBy('b.id', 'DESC')
-            ->andWhere('b.outdated = false')
+            ->addOrderBy('o.id', 'DESC')
+            ->andWhere('o.outdated = false')
         ;
 
-        return $onlyPublic ? $qb->andWhere('b.isPublic = true') : $qb;
+        return $onlyPublic ? $qb->andWhere('o.isPublic = true') : $qb;
     }
 
     public function findOneByOwnerAndId(User $owner, string $id, bool $onlyPublic): QueryBuilder
     {
-        $qb = $this->createQueryBuilder('b')
-            ->andWhere('b.owner = :owner')
+        $qb = $this->createQueryBuilder('o')
+            ->andWhere('o.owner = :owner')
             ->setParameter('owner', $owner)
-            ->andWhere('b.id = :id')
+            ->andWhere('o.id = :id')
             ->setParameter('id', $id)
         ;
 
-        return $onlyPublic ? $qb->andWhere('b.isPublic = true') : $qb;
+        return $onlyPublic ? $qb->andWhere('o.isPublic = true') : $qb;
     }
 
-    public function findLastOneByOwnerAndUrl(User $owner, string $normalizedUrl): ?Bookmark
+    public function findLastOneByOwnerAndUrl(User $owner, string $normalizedUrl): QueryBuilder
     {
-        return $this->createQueryBuilder('b')
-            ->andWhere('b.owner = :owner')
+        return $this->createQueryBuilder('o')
+            ->andWhere('o.owner = :owner')
             ->setParameter('owner', $owner)
-            ->andWhere('b.url = :url')
+            ->andWhere('o.url = :url')
             ->setParameter('url', $normalizedUrl)
-            ->orderBy('b.id', 'DESC')
+            ->orderBy('o.id', 'DESC')
             ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult()
         ;
     }
 
@@ -71,23 +67,37 @@ class BookmarkRepository extends ServiceEntityRepository
      * - tags: all given tags must be present and extra tags can be present
      * - search: fulltext search in title, url and description TODO
      *
-     * @param array<string> $tagNames
+     * @param array<string> $tagSlugs
      */
-    public function applyFilters(QueryBuilder $qb, array $tagNames, bool $onlyPublic): QueryBuilder
+    public function applyFilters(QueryBuilder $qb, array $tagSlugs, bool $onlyPublic): QueryBuilder
     {
-        if (0 === \count($tagNames)) {
+        if (0 === \count($tagSlugs)) {
             return $qb;
         }
 
         $qb = $qb
-            ->join('b.tags', 't')
-            ->andWhere('t.name IN (:tagNames)')
-            ->setParameter('tagNames', $tagNames)
-            ->groupBy('b.id')
+            ->join('o.tags', 't')
+            ->andWhere('t.slug IN (:tagSlugs)')
+            ->setParameter('tagSlugs', $tagSlugs)
+            ->groupBy('o.id')
             ->having('COUNT(DISTINCT t.id) = :tagCount')
-            ->setParameter('tagCount', \count($tagNames))
+            ->setParameter('tagCount', \count($tagSlugs))
         ;
 
         return $onlyPublic ? $qb->andWhere('t.isPublic = true') : $qb;
+    }
+
+    public function applyPagination(QueryBuilder $qb, ?string $after): QueryBuilder
+    {
+        if ($after) {
+            $qb = $qb->andWhere('o.id < :after')
+                ->setParameter('after', $after)
+            ;
+        }
+
+        return $qb
+            ->addOrderBy('o.id', 'DESC')
+            ->setMaxResults(24)
+        ;
     }
 }

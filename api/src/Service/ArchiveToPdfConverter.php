@@ -32,7 +32,9 @@ class ArchiveToPdfConverter
     public function handleBookmarkArchiveToPdfMessage(BookmarkArchiveToPdfMessage $message): void
     {
         $bookmark = $this->bookmarkRepository->findOneById($message->bookmarkId)
-            ?? throw new \LogicException('This bookmark does not exist.');
+            ->getQuery()->getOneOrNullResult()
+            ?? throw new \LogicException('This bookmark does not exist.')
+        ;
 
         $this->convertToPdf($bookmark);
     }

@@ -23,3 +23,11 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    App\Serializer\IriNormalizer:
+        tags:
+            - { name: 'serializer.normalizer', priority: 500 }
+
+    App\Serializer\FileObjectNormalizer:
+        tags:
+            - { name: 'serializer.normalizer', priority: 50 }

@@ -1,0 +1,15 @@
+parameters:
+    level: 8
+    paths:
+        - src
+        - public
+    scanDirectories:
+        - vendor
+    tmpDir: ../tools/phpstan/var
+    inferPrivatePropertyTypeFromConstructor: true
+    symfony:
+        containerXmlPath: 'var/cache/dev/App_KernelDevDebugContainer.xml'
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        - '#^Unused .*?::__construct$#'
+        - '#^Unused .*?::(set|get|is|has|add|remove).*$#'

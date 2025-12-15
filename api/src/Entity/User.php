@@ -2,83 +2,54 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\Link;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
-use App\Processor\UserMeProcessor;
-use App\Processor\UserMeRemoveProcessor;
-use App\Provider\UserByUsernameProvider;
-use App\Provider\UserMeProvider;
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\Ignore;
+use Symfony\Component\Serializer\Attribute\SerializedName;
+use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ApiResource(
-    uriTemplate: '/users/me',
-    operations: [
-        new Get(
-            description: 'Get own profile',
-            provider: UserMeProvider::class,
-        ),
-        new Patch(
-            description: 'Update own profile',
-            processor: UserMeProcessor::class,
-            validationContext: ['groups' => ['Default', 'user:update']],
-            denormalizationContext: ['groups' => ['user:owner']],
-        ),
-        new Delete(
-            description: 'Delete own profile',
-            processor: UserMeRemoveProcessor::class
-        ),
-    ],
-    normalizationContext: ['groups' => ['user:owner']],
-    collectDenormalizationErrors: true,
-)]
-#[ApiResource(
-    uriTemplate: '/profile/{username}',
-    uriVariables: [
-        'username' => new Link(fromClass: User::class),
-    ],
-    operations: [
-        new Get(
-            description: 'Show public profile',
-            provider: UserByUsernameProvider::class,
-            security: 'object.isPublic',
-            normalizationContext: ['groups' => ['user:profile']],
-        ),
-    ],
-    collectDenormalizationErrors: true,
-)]
-#[ApiResource(
-    // uriTemplate: '/users/{id}',
-    operations: [
-        new Post(
-            description: 'Register a new account',
-            validationContext: ['groups' => ['Default', 'user:create']],
-            processor: UserMeProcessor::class,
-            denormalizationContext: ['groups' => ['user:create']],
-            normalizationContext: ['groups' => ['user:owner']],
-        ),
-    ],
-    collectDenormalizationErrors: true,
-)]
-#[UniqueEntity('email')]
-#[UniqueEntity('username')]
+// #[ApiResource(
+//    uriTemplate: '/users/me',
+//    operations: [
+//        new Delete(
+//            description: 'Delete own profile',
+//            processor: UserMeRemoveProcessor::class
+//        ),
+//    ],
+//    normalizationContext: ['groups' => ['user:owner']],
+//    collectDenormalizationErrors: true,
+// )]
+// #[ApiResource(
+//    uriTemplate: '/profile/{username}',
+//    uriVariables: [
+//        'username' => new Link(fromClass: User::class),
+//    ],
+//    operations: [
+//        new Get(
+//            description: 'Show public profile',
+//            provider: UserByUsernameProvider::class,
+//            security: 'object.isPublic',
+//            normalizationContext: ['groups' => ['user:profile']],
+//        ),
+//    ],
+//    collectDenormalizationErrors: true,
+// )]
+#[Context([DateTimeNormalizer::FORMAT_KEY => \DateTimeInterface::ATOM])]
+#[UniqueEntity('email', groups: ['user:create', 'user:update'])]
+#[UniqueEntity('username', groups: ['user:create', 'user:update'])]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    #[Groups(['user:owner'])]
+    #[Ignore]
     #[ORM\Id, ORM\Column(type: 'uuid')]
     public private(set) string $id;
 
@@ -98,55 +69,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     public bool $isPublic = false;
 
+    /** @var array<string, string> */
+    #[Groups(['user:create', 'user:owner'])]
+    #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
+    public array $meta = [];
+
+    #[Ignore]
     #[ORM\Column]
     private string $password;
 
+    #[SerializedName('password')]
     #[Groups(['user:create', 'user:owner'])]
     #[Assert\NotBlank(groups: ['user:create'])]
+    #[Assert\Length(min: 8)]
     private ?string $plainPassword = null;
 
-    /**
-     * @var array<int, string>
-     */
+    /** @var array<int, string> */
     #[ORM\Column(type: 'json')]
     private array $roles = [];
-
-    //    /**
-    //     * @var Collection<int, Bookmark>
-    //     */
-    //    #[ORM\OneToMany(targetEntity: Bookmark::class, mappedBy: 'owner', orphanRemoval: true)]
-    //    private Collection $bookmarks;
-    //
-    //    /**
-    //     * @var Collection<int, Tag>
-    //     */
-    //    #[ORM\OneToMany(targetEntity: Tag::class, mappedBy: 'owner', orphanRemoval: true)]
-    //    private Collection $tags;
 
     public function __construct()
     {
         $this->id = Uuid::v7()->toString();
-        // $this->bookmarks = new ArrayCollection();
-        // $this->tags = new ArrayCollection();
     }
-
-    //    /**
-    //     * @return Collection<int, Bookmark>
-    //     */
-    //    public function getBookmarks(): Collection
-    //    {
-    //        throw new \LogicException('We dont want to call that method.');
-    //        // return $this->bookmarks;
-    //    }
-    //
-    //    /**
-    //     * @return Collection<int, Tag>
-    //     */
-    //    public function getTags(): Collection
-    //    {
-    //        throw new \LogicException('We dont want to call that method.');
-    //        // return $this->bookmarks;
-    //    }
 
     /**
      * @see PasswordAuthenticatedUserInterface
@@ -176,8 +121,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @see UserInterface
-     *
      * @return array<int, string>
      */
     public function getRoles(): array
@@ -201,8 +144,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     /**
      * A visual identifier that represents this user.
-     *
-     * @see UserInterface
      *
      * @return non-empty-string
      */

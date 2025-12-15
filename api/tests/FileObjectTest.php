@@ -2,7 +2,6 @@
 
 namespace App\Tests;
 
-use App\Entity\FileObject;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class FileObjectTest extends BaseApiTestCase
@@ -12,7 +11,7 @@ class FileObjectTest extends BaseApiTestCase
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
         $file = new UploadedFile(__DIR__ . '/data/image_01.jpg', 'image_01.jpg');
 
-        $this->assertUnauthorized('POST', '/api/file_objects', [
+        $this->assertUnauthorized('POST', '/api/users/me/files', [
             'headers' => ['Content-Type' => 'multipart/form-data'],
             'extra' => [
                 'files' => [
@@ -21,7 +20,7 @@ class FileObjectTest extends BaseApiTestCase
             ],
         ]);
 
-        $response = $this->client->request('POST', '/api/file_objects', [
+        $this->request('POST', '/api/users/me/files', [
             'headers' => ['Content-Type' => 'multipart/form-data'],
             'auth_bearer' => $token,
             'extra' => [
@@ -31,16 +30,15 @@ class FileObjectTest extends BaseApiTestCase
             ],
         ]);
         $this->assertResponseIsSuccessful();
-        $this->assertMatchesResourceItemJsonSchema(FileObject::class);
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
-        $this->assertArrayHasKey('@id', $json);
+        $this->assertArrayHasKey('@iri', $json);
         $this->assertArrayHasKey('contentUrl', $json);
         $this->assertArrayHasKey('size', $json);
         $this->assertArrayHasKey('mime', $json);
 
-        $this->assertIsString($json['@id']);
+        $this->assertIsString($json['@iri']);
         $this->assertIsString($json['contentUrl']);
         $this->assertIsInt($json['size']);
         $this->assertIsString($json['mime']);

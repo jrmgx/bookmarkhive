@@ -3,7 +3,9 @@
 namespace App\Repository;
 
 use App\Entity\FileObject;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -16,13 +18,13 @@ class FileObjectRepository extends ServiceEntityRepository
         parent::__construct($registry, FileObject::class);
     }
 
-    public function findOneById(string $id): ?FileObject
+    public function findOneByOwnerAndId(User $owner, string $id): QueryBuilder
     {
-        return $this->createQueryBuilder('fo')
-            ->andWhere('fo.id = :id')
+        return $this->createQueryBuilder('o')
+            ->andWhere('o.owner = :owner')
+            ->setParameter('owner', $owner)
+            ->andWhere('o.id = :id')
             ->setParameter('id', $id)
-            ->getQuery()
-            ->getOneOrNullResult()
         ;
     }
 }

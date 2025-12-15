@@ -2,19 +2,16 @@
 
 namespace App\Tests;
 
-use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 use App\Entity\User;
 use Hautelook\AliceBundle\PhpUnit\ReloadDatabaseTrait;
 
-class AuthenticationTest extends ApiTestCase
+class AuthenticationTest extends BaseApiTestCase
 {
     use ReloadDatabaseTrait;
 
     public function testLogin(): void
     {
-        static::$alwaysBootKernel = true;
-        $client = self::createClient();
-        $container = self::getContainer();
+        $container = $this->container;
 
         $user = new User();
         $user->email = 'test@example.com';
@@ -28,7 +25,7 @@ class AuthenticationTest extends ApiTestCase
         $manager->flush();
 
         // retrieve a token
-        $response = $client->request('POST', '/api/auth', [
+        $this->request('POST', '/api/auth', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => 'test@example.com',
@@ -36,16 +33,16 @@ class AuthenticationTest extends ApiTestCase
             ],
         ]);
 
-        $json = $response->toArray();
+        $json = $this->dump($this->getResponseArray());
         $this->assertResponseIsSuccessful();
         $this->assertArrayHasKey('token', $json);
 
         // test not authorized
-        $client->request('GET', '/api/users/me/bookmarks');
+        $this->request('GET', '/api/users/me/bookmarks');
         $this->assertResponseStatusCodeSame(401);
 
         // test authorized
-        $client->request('GET', '/api/users/me/bookmarks', [
+        $this->request('GET', '/api/users/me/bookmarks', [
             'auth_bearer' => $json['token'],
         ]);
         $this->assertResponseIsSuccessful();

@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Tag;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -17,41 +18,37 @@ class TagRepository extends ServiceEntityRepository
         parent::__construct($registry, Tag::class);
     }
 
-    public function findOneByOwnerAndName(User $owner, string $name): ?Tag
+    public function countByOwner(User $owner): int
     {
-        return $this->createQueryBuilder('t')
-            ->andWhere('t.owner = :owner')
+        return (int) $this->createQueryBuilder('o')
+            ->select('count(o.id)')
+            ->andWhere('o.owner = :owner')
             ->setParameter('owner', $owner)
-            ->andWhere('t.name = :name')
-            ->setParameter('name', $name)
             ->getQuery()
-            ->getOneOrNullResult()
+            ->getSingleScalarResult()
         ;
     }
 
-    /**
-     * @return array<int, Tag>
-     */
-    public function findByOwner(User $owner): array
+    public function findByOwner(User $owner, bool $onlyPublic): QueryBuilder
     {
-        return $this->createQueryBuilder('t')
-            ->andWhere('t.owner = :owner')
+        $qb = $this->createQueryBuilder('o')
+            ->andWhere('o.owner = :owner')
             ->setParameter('owner', $owner)
-            ->addOrderBy('t.id', 'ASC')
-            ->getQuery()
-            ->getResult()
+            ->addOrderBy('o.id', 'ASC')
         ;
+
+        return $onlyPublic ? $qb->andWhere('o.isPublic = true') : $qb;
     }
 
-    public function findOneByOwnerAndSlug(User $owner, string $slug): ?Tag
+    public function findOneByOwnerAndSlug(User $owner, string $slug, bool $onlyPublic): QueryBuilder
     {
-        return $this->createQueryBuilder('t')
-            ->andWhere('t.owner = :owner')
+        $qb = $this->createQueryBuilder('o')
+            ->andWhere('o.owner = :owner')
             ->setParameter('owner', $owner)
-            ->andWhere('t.slug = :slug')
+            ->andWhere('o.slug = :slug')
             ->setParameter('slug', $slug)
-            ->getQuery()
-            ->getOneOrNullResult()
         ;
+
+        return $onlyPublic ? $qb->andWhere('o.isPublic = true') : $qb;
     }
 }

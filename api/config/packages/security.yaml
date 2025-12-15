@@ -14,27 +14,28 @@ security:
         dev:
             pattern: ^/_(profiler|wdt)
             security: false
+        login:
+            pattern: ^/api/auth
+            stateless: true
+            json_login:
+                username_path: email
+                check_path: /api/auth
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
         api:
             pattern: ^/api/
             stateless: true
             provider: users
             jwt: ~
-            json_login:
-                check_path: /api/auth
-                username_path: email
-                password_path: password
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
     access_control:
-        - { path: ^/api/auth, roles: PUBLIC_ACCESS } # Allows login
-        - { path: ^/api$, roles: PUBLIC_ACCESS } # Allows accessing the Swagger UI
-        - { path: ^/api/users/me, roles: IS_AUTHENTICATED_FULLY } # Own user account
-        - { path: ^/api/docs, roles: PUBLIC_ACCESS } # Allows accessing API documentations and Swagger UI docs
-        - { path: ^/api/contexts, roles: PUBLIC_ACCESS } # Allows accessing the Swagger UI contexts
-        - { path: ^/api/users, roles: PUBLIC_ACCESS, methods: ['POST'] } # Allows create user
+        - { path: ^/api/auth$, roles: PUBLIC_ACCESS } # Allows login
+        - { path: ^/api$, roles: PUBLIC_ACCESS } # Allows accessing API documentation
+        - { path: ^/api/docs$, roles: PUBLIC_ACCESS } # Allows accessing API documentation
+        - { path: ^/api/account$, roles: PUBLIC_ACCESS, methods: ['POST'] } # Allows create user
         - { path: ^/api/profile, roles: PUBLIC_ACCESS } # Public side
-        - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/users/me, roles: IS_AUTHENTICATED_FULLY } # Own user account
+        - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY } # Everything else
 
 when@test:
     security:

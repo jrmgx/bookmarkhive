@@ -1,0 +1,37 @@
+### Variables
+
+@baseUrl = https://bookmarkhive.test
+
+
+### Create file object (upload file)
+
+# Note: In HTTP client, you need to use multipart/form-data
+# The file field should be named "file"
+POST {{baseUrl}}/api/users/me/files
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+Authorization: Bearer {{jwt}}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="image_01.jpg"
+Content-Type: image/jpeg
+
+< ../tests/data/image_01.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### Create file object (alternative - let HTTP client handle multipart)
+
+# In IntelliJ/PhpStorm HTTP client, you can use:
+# POST {{baseUrl}}/api/users/me/files
+# Authorization: Bearer {{jwt}}
+# Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+#
+# ------WebKitFormBoundary
+# Content-Disposition: form-data; name="file"; filename="image.jpg"
+# Content-Type: image/jpeg
+#
+# < ./path/to/file.jpg
+# ------WebKitFormBoundary--
+
+
+###

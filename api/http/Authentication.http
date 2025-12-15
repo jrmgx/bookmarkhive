@@ -1,0 +1,46 @@
+### Variables
+
+@baseUrl = https://bookmarkhive.test
+@contentType = application/json
+
+
+### Register new account
+
+POST {{baseUrl}}/api/account
+Content-Type: {{contentType}}
+
+{
+  "email": "user@example.com",
+  "username": "user",
+  "password": "string"
+}
+
+
+### Login and save JWT token
+
+# @name login
+POST {{baseUrl}}/api/auth
+Content-Type: {{contentType}}
+
+{
+  "email": "user@example.com",
+  "password": "string"
+}
+
+> {%
+  client.global.set("jwt", response.body.token);
+%}
+
+
+### Test authorized request
+
+GET {{baseUrl}}/api/users/me/bookmarks
+Authorization: Bearer {{jwt}}
+
+
+### Test unauthorized request (should return 401)
+
+GET {{baseUrl}}/api/users/me/bookmarks
+
+
+###

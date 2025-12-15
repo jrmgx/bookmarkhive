@@ -2,45 +2,15 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiProperty;
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Post;
-use ApiPlatform\OpenApi\Model;
-use App\Processor\FileObjectMeProcessor;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Context;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
 #[ORM\Entity]
-#[ApiResource(
-    normalizationContext: ['groups' => ['file_object:read']],
-    outputFormats: ['jsonld' => ['application/ld+json']],
-    operations: [
-        new Post(
-            description: 'Create a new file to be associated with something',
-            processor: FileObjectMeProcessor::class,
-            inputFormats: ['multipart' => ['multipart/form-data']],
-            openapi: new Model\Operation(
-                requestBody: new Model\RequestBody(
-                    content: new \ArrayObject([
-                        'multipart/form-data' => [
-                            'schema' => [
-                                'type' => 'object',
-                                'properties' => [
-                                    'file' => [
-                                        'type' => 'string',
-                                        'format' => 'binary',
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ])
-                )
-            )
-        ),
-    ]
-)]
+#[Context([DateTimeNormalizer::FORMAT_KEY => \DateTime::ATOM])]
 class FileObject
 {
     #[ORM\Id, ORM\Column(type: 'uuid')]
@@ -51,20 +21,16 @@ class FileObject
     }
 
     #[Groups(['file_object:read', 'bookmark:owner', 'bookmark:profile'])]
-    #[ApiProperty(types: ['https://schema.org/contentUrl'], writable: false)]
     public ?string $contentUrl = null;
 
     #[Groups(['file_object:read', 'bookmark:owner', 'bookmark:profile'])]
-    #[ApiProperty(writable: false)]
     #[ORM\Column()]
     public int $size;
 
     #[Groups(['file_object:read', 'bookmark:owner', 'bookmark:profile'])]
-    #[ApiProperty(writable: false)]
     #[ORM\Column()]
     public string $mime;
 
-    #[ApiProperty(writable: false)]
     #[ORM\Column()]
     public string $filePath;
 

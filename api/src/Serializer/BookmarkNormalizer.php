@@ -2,37 +2,38 @@
 
 namespace App\Serializer;
 
-use App\Entity\FileObject;
+use App\Config\RouteContext;
+use App\Entity\Bookmark;
+use App\Entity\Tag;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
-readonly class FileObjectNormalizer implements NormalizerInterface
+readonly class BookmarkNormalizer implements NormalizerInterface
 {
     public function __construct(
         #[Autowire(service: IriNormalizer::class)]
         private NormalizerInterface $normalizer,
-        private string $storageDefaultPublicPath,
+        private RouteContext $routeContext,
     ) {
     }
 
     /**
-     * @param FileObject $data
+     * @param Bookmark $data
      */
     public function normalize($data, ?string $format = null, array $context = []): array|string|int|float|bool|\ArrayObject|null
     {
-        $normalizedData = $this->normalizer->normalize($data, $format, $context);
+        if (!$this->routeContext->getType()->isMe()) {
+            // Remove non-public tags
+            /* @phpstan-ignore-next-line */
+            $data->tags = $data->tags->filter(fn (Tag $tag) => $tag->isPublic);
+        }
 
-        /* @phpstan-ignore-next-line */
-        $normalizedData['contentUrl'] =
-            // TODO use flysystem instead
-            $this->storageDefaultPublicPath . '/' . $data->filePath;
-
-        return $normalizedData;
+        return $this->normalizer->normalize($data, $format, $context);
     }
 
     public function supportsNormalization($data, ?string $format = null, array $context = []): bool
     {
-        return $data instanceof FileObject;
+        return $data instanceof Bookmark;
     }
 
     /**
@@ -41,7 +42,7 @@ readonly class FileObjectNormalizer implements NormalizerInterface
     public function getSupportedTypes(?string $format): array
     {
         return [
-            FileObject::class => true,
+            Bookmark::class => true,
         ];
     }
 }

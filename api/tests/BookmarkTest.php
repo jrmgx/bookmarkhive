@@ -7,6 +7,7 @@ use App\Factory\TagFactory;
 use App\Factory\UserFactory;
 use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class BookmarkTest extends BaseApiTestCase
 {
@@ -22,13 +23,13 @@ class BookmarkTest extends BaseApiTestCase
 
         $this->assertUnauthorized('GET', '/api/users/me/bookmarks');
 
-        $response = $this->client->request('GET', '/api/users/me/bookmarks', ['auth_bearer' => $token]);
+        $this->request('GET', '/api/users/me/bookmarks', ['auth_bearer' => $token]);
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
-        $this->assertCount(5, $json['member']);
-        $this->assertBookmarkOwnerCollection($json['member']);
+        $this->assertCount(5, $json['collection']);
+        $this->assertBookmarkOwnerCollection($json['collection']);
     }
 
     public function testListOwnBookmarksWithFilter(): void
@@ -72,29 +73,29 @@ class BookmarkTest extends BaseApiTestCase
             'tags' => new ArrayCollection([$tag1, $tag2, $tagPrivate]),
         ]);
 
-        $response = $this->client->request('GET', '/api/users/me/bookmarks?tags=Tag%20One,Tag%20Two', [
+        $this->request('GET', '/api/users/me/bookmarks?tags=tag-one,tag-two', [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
         // Only bookmark with both Tag One AND Tag Two should match
-        $this->assertCount(2, $json['member']);
-        $this->assertEquals('Bookmark With Tag One, Two, Private (fourth)', $json['member'][0]['title']);
-        $this->assertEquals('https://public.com', $json['member'][0]['url']);
-        $this->assertIsArray($json['member'][0]['tags']);
-        $this->assertCount(3, $json['member'][0]['tags']); // All tags
-        $this->assertBookmarkOwnerCollection($json['member']);
+        $this->assertCount(2, $json['collection']);
+        $this->assertEquals('Bookmark With Tag One, Two, Private (fourth)', $json['collection'][0]['title']);
+        $this->assertEquals('https://public.com', $json['collection'][0]['url']);
+        $this->assertIsArray($json['collection'][0]['tags']);
+        $this->assertCount(3, $json['collection'][0]['tags']); // All tags
+        $this->assertBookmarkOwnerCollection($json['collection']);
 
-        $response = $this->client->request('GET', '/api/users/me/bookmarks?tags=Private%20Tag', [
+        $this->request('GET', '/api/users/me/bookmarks?tags=private-tag', [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
-        $this->assertCount(3, $json['member']);
+        $this->assertCount(3, $json['collection']);
     }
 
     public function testCreateBookmark(): void
@@ -105,15 +106,15 @@ class BookmarkTest extends BaseApiTestCase
         $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
 
         $this->assertUnauthorized('POST', '/api/users/me/bookmarks', [
-            'headers' => ['Content-Type' => 'application/ld+json'],
+            'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'title' => 'Test Bookmark',
                 'url' => 'https://example.com',
             ],
         ]);
 
-        $response = $this->client->request('POST', '/api/users/me/bookmarks', [
-            'headers' => ['Content-Type' => 'application/ld+json'],
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
                 'title' => 'Test Bookmark',
@@ -126,7 +127,7 @@ class BookmarkTest extends BaseApiTestCase
         ]);
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
         $this->assertEquals('Test Bookmark', $json['title']);
         $this->assertEquals('https://example.com', $json['url']);
@@ -135,13 +136,72 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertBookmarkOwnerResponse($json);
     }
 
+    public function testCreateBookmarkWithTagAsJsonObjectFails(): void
+    {
+        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'title' => 'Bookmark With Tag Object',
+                'url' => 'https://example.com',
+                'tags' => [[
+                    'name' => 'Some Tag',
+                ]],
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422, 'Supplying tags as JSON objects should fail with 422 Unprocessable Entity');
+
+        $json = $this->getResponseArray();
+        $this->assertArrayHasKey('error', $json, 'Error should be present in response.');
+    }
+
+    public function testCreateBookmarkWithInvalidTagIri(): void
+    {
+        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+
+        // Use unexistant IRI (does not exist)
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'title' => 'Bookmark With Invalid Tag',
+                'url' => 'https://example.com',
+                'tags' => ['/api/users/me/tags/nonexistent-tag-iri'],
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422, 'Supplying an invalid tag IRI should fail with 422 Unprocessable Entity.');
+
+        $json = $this->getResponseArray();
+        $this->assertArrayHasKey('error', $json, 'Error message should be present in response.');
+
+        // Use invalid IRI (does not parse)
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'title' => 'Bookmark With Invalid Tag',
+                'url' => 'https://example.com',
+                'tags' => ['some-random-string'],
+            ],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422, 'Supplying an invalid tag IRI should fail with 422 Unprocessable Entity.');
+
+        $json = $this->getResponseArray();
+        $this->assertArrayHasKey('error', $json, 'Error message should be present in response.');
+    }
+
     #[DataProvider('fileFieldProvider')]
     public function testCreateBookmarkWithFile(string $fieldName, string $expectedTitle): void
     {
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
-        $file = new \Symfony\Component\HttpFoundation\File\UploadedFile(__DIR__ . '/data/image_01.jpg', 'image_01.jpg');
+        $file = new UploadedFile(__DIR__ . '/data/image_01.jpg', 'image_01.jpg');
 
-        $fileResponse = $this->client->request('POST', '/api/file_objects', [
+        $this->request('POST', '/api/users/me/files', [
             'headers' => ['Content-Type' => 'multipart/form-data'],
             'auth_bearer' => $token,
             'extra' => [
@@ -151,11 +211,11 @@ class BookmarkTest extends BaseApiTestCase
             ],
         ]);
         $this->assertResponseIsSuccessful();
-        $fileJson = $fileResponse->toArray();
-        $fileObjectIri = $fileJson['@id'];
+        $fileJson = $this->getResponseArray();
+        $fileObjectIri = $fileJson['@iri'];
 
         $this->assertUnauthorized('POST', '/api/users/me/bookmarks', [
-            'headers' => ['Content-Type' => 'application/ld+json'],
+            'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'title' => $expectedTitle,
                 'url' => 'https://example.com',
@@ -163,8 +223,8 @@ class BookmarkTest extends BaseApiTestCase
             ],
         ]);
 
-        $response = $this->client->request('POST', '/api/users/me/bookmarks', [
-            'headers' => ['Content-Type' => 'application/ld+json'],
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
                 'title' => $expectedTitle,
@@ -174,29 +234,29 @@ class BookmarkTest extends BaseApiTestCase
         ]);
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
         $this->assertEquals($expectedTitle, $json['title']);
         $this->assertEquals('https://example.com', $json['url']);
         $this->assertArrayHasKey($fieldName, $json);
         $this->assertIsArray($json[$fieldName], "{$fieldName} should be an unfolded FileObject");
-        $this->assertArrayHasKey('@id', $json[$fieldName]);
-        $this->assertEquals($fileObjectIri, $json[$fieldName]['@id'], "{$fieldName} @id should reference the created FileObject");
+        $this->assertArrayHasKey('@iri', $json[$fieldName]);
+        $this->assertEquals($fileObjectIri, $json[$fieldName]['@iri'], "{$fieldName} @iri should reference the created FileObject");
         $this->assertArrayHasKey('contentUrl', $json[$fieldName], "{$fieldName} should have contentUrl");
         $this->assertIsString($json[$fieldName]['contentUrl']);
         $this->assertBookmarkOwnerResponse($json);
 
         // Verify we can retrieve the bookmark and it still has the file field
-        $getResponse = $this->client->request('GET', $json['@id'], [
+        $this->request('GET', $json['@iri'], [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
 
-        $retrievedBookmark = dump($getResponse->toArray());
+        $retrievedBookmark = $this->dump($this->getResponseArray());
         $this->assertEquals($expectedTitle, $retrievedBookmark['title']);
         $this->assertArrayHasKey($fieldName, $retrievedBookmark);
         $this->assertIsArray($retrievedBookmark[$fieldName], "{$fieldName} should be an unfolded FileObject");
-        $this->assertEquals($fileObjectIri, $retrievedBookmark[$fieldName]['@id'], "{$fieldName} should persist when retrieving the bookmark");
+        $this->assertEquals($fileObjectIri, $retrievedBookmark[$fieldName]['@iri'], "{$fieldName} should persist when retrieving the bookmark");
         $this->assertBookmarkOwnerResponse($retrievedBookmark);
     }
 
@@ -227,12 +287,12 @@ class BookmarkTest extends BaseApiTestCase
 
         $this->assertUnauthorized('GET', "/api/users/me/bookmarks/{$bookmark->id}", [], 'Should not be able to access.');
 
-        $response = $this->client->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", [
+        $this->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
         $this->assertEquals('My Bookmark', $json['title']);
         $this->assertEquals('https://example.com', $json['url']);
@@ -259,18 +319,18 @@ class BookmarkTest extends BaseApiTestCase
         ]);
 
         $this->assertUnauthorized('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
-            'headers' => ['Content-Type' => 'application/merge-patch+json'],
+            'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'title' => 'Updated Title',
             ],
         ]);
 
-        $response = $this->client->request('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
-            'headers' => ['Content-Type' => 'application/merge-patch+json'],
+        $this->request('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
+            'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
                 'title' => 'Updated Title',
-                'url' => 'https://updated.com',
+                'url' => 'https://updated.com', // We can not update url
                 'tags' => [
                     "/api/users/me/tags/{$tag2->slug}",
                     "/api/users/me/tags/{$tag3->slug}",
@@ -279,16 +339,16 @@ class BookmarkTest extends BaseApiTestCase
         ]);
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
         $this->assertEquals('Updated Title', $json['title']);
-        $this->assertEquals('https://updated.com', $json['url']);
+        $this->assertEquals('https://original.com', $json['url']);
         $this->assertIsArray($json['tags']);
         $this->assertCount(2, $json['tags']);
         $this->assertBookmarkOwnerResponse($json);
 
         $this->assertOtherUserCannotAccess('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
-            'headers' => ['Content-Type' => 'application/merge-patch+json'],
+            'headers' => ['Content-Type' => 'application/json'],
             'json' => ['title' => 'Hacked Title'],
         ]);
     }
@@ -303,10 +363,10 @@ class BookmarkTest extends BaseApiTestCase
 
         $this->assertOtherUserCannotAccess('DELETE', "/api/users/me/bookmarks/{$bookmark->id}");
 
-        $this->client->request('DELETE', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
+        $this->request('DELETE', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
         $this->assertResponseStatusCodeSame(204);
 
-        $this->client->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
+        $this->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
         $this->assertResponseStatusCodeSame(404);
     }
 
@@ -323,13 +383,13 @@ class BookmarkTest extends BaseApiTestCase
         BookmarkFactory::createMany(3, ['owner' => $user, 'isPublic' => true, 'tags' => new ArrayCollection([$tag1, $tag2])]);
         BookmarkFactory::createMany(2, ['owner' => $user, 'isPublic' => false]);
 
-        $response = $this->client->request('GET', "/api/profile/{$user->username}/bookmarks");
+        $this->request('GET', "/api/profile/{$user->username}/bookmarks");
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
-        $this->assertCount(3, $json['member']);
-        $this->assertBookmarkProfileCollection($json['member']);
+        $this->assertCount(3, $json['collection']);
+        $this->assertBookmarkProfileCollection($json['collection']);
     }
 
     public function testGetPublicBookmark(): void
@@ -359,10 +419,10 @@ class BookmarkTest extends BaseApiTestCase
             'tags' => new ArrayCollection([$tag1, $tag2, $tag3]),
         ]);
 
-        $response = $this->client->request('GET', "/api/profile/{$user->username}/bookmarks/{$publicBookmark->id}");
+        $this->request('GET', "/api/profile/{$user->username}/bookmarks/{$publicBookmark->id}");
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
         $this->assertEquals('Public Bookmark', $json['title']);
         $this->assertEquals('https://public.com', $json['url']);
@@ -370,7 +430,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertCount(2, $json['tags']);
         $this->assertBookmarkProfileResponse($json);
 
-        $this->client->request('GET', "/api/profile/{$user->username}/bookmarks/{$privateBookmark->id}");
+        $this->request('GET', "/api/profile/{$user->username}/bookmarks/{$privateBookmark->id}");
         $this->assertResponseStatusCodeSame(404);
     }
 
@@ -410,24 +470,159 @@ class BookmarkTest extends BaseApiTestCase
             'tags' => new ArrayCollection([$tag1, $tag3, $tagPrivate]),
         ]);
 
-        $response = $this->client->request('GET', "/api/profile/{$user->username}/bookmarks?tags=Tag%20One,Tag%20Two");
+        $this->request('GET', "/api/profile/{$user->username}/bookmarks?tags=tag-one,tag-two");
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
-        $this->assertCount(1, $json['member']);
-        $this->assertEquals('Bookmark With Tag One, Two, Three, Private', $json['member'][0]['title']);
-        $this->assertEquals('https://public.com', $json['member'][0]['url']);
-        $this->assertIsArray($json['member'][0]['tags']);
-        $this->assertCount(3, $json['member'][0]['tags']); // Only public tags
-        $this->assertBookmarkProfileCollection($json['member']);
+        $this->assertCount(1, $json['collection']);
+        $this->assertEquals('Bookmark With Tag One, Two, Three, Private', $json['collection'][0]['title']);
+        $this->assertEquals('https://public.com', $json['collection'][0]['url']);
+        $this->assertIsArray($json['collection'][0]['tags']);
+        $this->assertCount(3, $json['collection'][0]['tags']); // Only public tags
+        $this->assertBookmarkProfileCollection($json['collection']);
 
-        $response = $this->client->request('GET', "/api/profile/{$user->username}/bookmarks?tags=Private%20Tag");
+        $this->request('GET', "/api/profile/{$user->username}/bookmarks?tags=private-tag");
         $this->assertResponseIsSuccessful();
 
-        $json = dump($response->toArray());
+        $json = $this->dump($this->getResponseArray());
 
-        $this->assertCount(0, $json['member']);
+        $this->assertCount(0, $json['collection']);
+    }
+
+    public function testCursorBasedPagination(): void
+    {
+        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+
+        // Bookmark 120 is the newest (created last)
+        for ($i = 1; $i <= 120; ++$i) {
+            BookmarkFactory::createOne([
+                'owner' => $user,
+                'title' => "Bookmark {$i}",
+                'url' => 'https://example.com',
+            ]);
+        }
+
+        // Request the first page (no after parameter)
+        $this->request('GET', '/api/users/me/bookmarks', [
+            'auth_bearer' => $token,
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        $json = $this->dump($this->getResponseArray());
+
+        // Should return 24 entries (first page)
+        $this->assertCount(24, $json['collection']);
+        $this->assertBookmarkOwnerCollection($json['collection']);
+
+        // First entry should be Bookmark 120 (newest first, highest number)
+        $this->assertEquals('Bookmark 120', $json['collection'][0]['title']);
+
+        // Verify the order: should be descending (120, 119, 118, ...)
+        for ($i = 0; $i < 24; ++$i) {
+            $expectedTitle = 'Bookmark ' . (120 - $i);
+            $this->assertEquals($expectedTitle, $json['collection'][$i]['title'], "Entry at index {$i} should be {$expectedTitle}");
+        }
+
+        // Get the last bookmark ID from the first page to use as cursor for the second page
+        $lastBookmarkId = $json['collection'][23]['id'];
+        $this->assertIsString($lastBookmarkId);
+
+        // Request the second page using the last ID from the first page
+        $this->request('GET', "/api/users/me/bookmarks?after={$lastBookmarkId}", [
+            'auth_bearer' => $token,
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        $json = $this->dump($this->getResponseArray());
+
+        $this->assertCount(24, $json['collection']);
+        $this->assertBookmarkOwnerCollection($json['collection']);
+
+        // First entry should be Bookmark 96 (continuing from Bookmark 97 which was last on first page)
+        $this->assertEquals('Bookmark 96', $json['collection'][0]['title']);
+
+        // Verify the order: should be descending (96, 95, 94, ..., 73)
+        for ($i = 0; $i < 24; ++$i) {
+            $expectedTitle = 'Bookmark ' . (96 - $i);
+            $this->assertEquals($expectedTitle, $json['collection'][$i]['title'], "Entry at index {$i} should be {$expectedTitle}");
+        }
+    }
+
+    public function testCanNotAccessOtherUsersPrivateBookmark(): void
+    {
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+
+        $privateBookmark = BookmarkFactory::createOne([
+            'owner' => $owner,
+            'title' => 'Private Bookmark',
+            'url' => 'https://private.com',
+            'isPublic' => false,
+        ]);
+
+        // Owner can access their own private bookmark
+        $this->request('GET', "/api/users/me/bookmarks/{$privateBookmark->id}", ['auth_bearer' => $ownerToken]);
+        $this->assertResponseIsSuccessful();
+
+        // Other user cannot access owner's private bookmark
+        $this->request('GET', "/api/users/me/bookmarks/{$privateBookmark->id}", ['auth_bearer' => $otherToken]);
+        $this->assertResponseStatusCodeSame(404, 'Other user should not be able to access private bookmark');
+    }
+
+    public function testCanNotEditOtherUsersBookmark(): void
+    {
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+
+        $bookmark = BookmarkFactory::createOne([
+            'owner' => $owner,
+            'title' => 'Original Bookmark',
+            'url' => 'https://original.com',
+        ]);
+
+        // Owner can edit their own bookmark
+        $this->request('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $ownerToken,
+            'json' => ['title' => 'Updated By Owner'],
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        // Other user cannot edit owner's bookmark
+        $this->request('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $otherToken,
+            'json' => ['title' => 'Hacked Bookmark'],
+        ]);
+        $this->assertResponseStatusCodeSame(404, 'Other user should not be able to edit bookmark');
+
+        // Verify bookmark was not modified by other user
+        $this->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $ownerToken]);
+        $json = $this->getResponseArray();
+        $this->assertEquals('Updated By Owner', $json['title'], 'Bookmark should not be modified by other user');
+    }
+
+    public function testCanNotDeleteOtherUsersBookmark(): void
+    {
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+
+        $bookmark = BookmarkFactory::createOne([
+            'owner' => $owner,
+            'title' => 'Bookmark To Delete',
+            'url' => 'https://example.com',
+        ]);
+
+        // Other user cannot delete owner's bookmark
+        $this->request('DELETE', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $otherToken]);
+        $this->assertResponseStatusCodeSame(404, 'Other user should not be able to delete bookmark');
+
+        // Verify bookmark still exists
+        $this->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $ownerToken]);
+        $this->assertResponseIsSuccessful();
+        $json = $this->getResponseArray();
+        $this->assertEquals('Bookmark To Delete', $json['title'], 'Bookmark should still exist after failed deletion attempt');
     }
 
     private function assertOtherUserCannotAccess(string $method, string $url, array $options = []): void
@@ -435,7 +630,7 @@ class BookmarkTest extends BaseApiTestCase
         [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
 
         $requestOptions = array_merge($options, ['auth_bearer' => $otherToken]);
-        $this->client->request($method, $url, $requestOptions);
+        $this->request($method, $url, $requestOptions);
         $this->assertResponseStatusCodeSame(404);
     }
 
@@ -454,20 +649,18 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertArrayHasKey('tags', $json);
         $this->assertIsArray($json['tags']);
 
-        $bookmarkFields = array_filter(array_keys($json), fn ($key) => !str_starts_with($key, '@'));
-        $expectedBookmarkFields = ['id', 'createdAt', 'title', 'url', 'owner', 'isPublic', 'tags'];
+        $bookmarkFields = array_keys($json);
+        $expectedBookmarkFields = ['id', 'createdAt', 'title', 'url', 'owner', 'isPublic', 'tags', '@iri'];
 
         // Archive and mainImage are optional, add them to expected fields if present
         if (isset($json['archive'])) {
             $expectedBookmarkFields[] = 'archive';
             $this->assertIsArray($json['archive'], 'archive should be an unfolded FileObject');
-            $this->assertArrayHasKey('@id', $json['archive']);
             $this->assertArrayHasKey('contentUrl', $json['archive']);
         }
         if (isset($json['mainImage'])) {
             $expectedBookmarkFields[] = 'mainImage';
             $this->assertIsArray($json['mainImage'], 'mainImage should be an unfolded FileObject');
-            $this->assertArrayHasKey('@id', $json['mainImage']);
             $this->assertArrayHasKey('contentUrl', $json['mainImage']);
         }
 
@@ -493,20 +686,18 @@ class BookmarkTest extends BaseApiTestCase
             $this->assertArrayHasKey('tags', $bookmark);
             $this->assertIsArray($bookmark['tags']);
 
-            $bookmarkFields = array_filter(array_keys($bookmark), fn ($key) => !str_starts_with($key, '@'));
-            $expectedBookmarkFields = ['id', 'createdAt', 'title', 'url', 'owner', 'isPublic', 'tags'];
+            $bookmarkFields = array_keys($bookmark);
+            $expectedBookmarkFields = ['id', 'createdAt', 'title', 'url', 'owner', 'isPublic', 'tags', '@iri'];
 
             // Archive and mainImage are optional, add them to expected fields if present
             if (isset($bookmark['archive'])) {
                 $expectedBookmarkFields[] = 'archive';
                 $this->assertIsArray($bookmark['archive'], 'archive should be an unfolded FileObject');
-                $this->assertArrayHasKey('@id', $bookmark['archive']);
                 $this->assertArrayHasKey('contentUrl', $bookmark['archive']);
             }
             if (isset($bookmark['mainImage'])) {
                 $expectedBookmarkFields[] = 'mainImage';
                 $this->assertIsArray($bookmark['mainImage'], 'mainImage should be an unfolded FileObject');
-                $this->assertArrayHasKey('@id', $bookmark['mainImage']);
                 $this->assertArrayHasKey('contentUrl', $bookmark['mainImage']);
             }
 
@@ -528,20 +719,18 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertArrayHasKey('tags', $json);
         $this->assertIsArray($json['tags']);
 
-        $bookmarkFields = array_filter(array_keys($json), fn ($key) => !str_starts_with($key, '@'));
-        $expectedBookmarkFields = ['id', 'createdAt', 'title', 'url', 'owner', 'tags'];
+        $bookmarkFields = array_keys($json);
+        $expectedBookmarkFields = ['id', 'createdAt', 'title', 'url', 'owner', 'tags', '@iri'];
 
         // Archive and mainImage are optional, add them to expected fields if present
         if (isset($json['archive'])) {
             $expectedBookmarkFields[] = 'archive';
             $this->assertIsArray($json['archive'], 'archive should be an unfolded FileObject');
-            $this->assertArrayHasKey('@id', $json['archive']);
             $this->assertArrayHasKey('contentUrl', $json['archive']);
         }
         if (isset($json['mainImage'])) {
             $expectedBookmarkFields[] = 'mainImage';
             $this->assertIsArray($json['mainImage'], 'mainImage should be an unfolded FileObject');
-            $this->assertArrayHasKey('@id', $json['mainImage']);
             $this->assertArrayHasKey('contentUrl', $json['mainImage']);
         }
 
@@ -568,20 +757,18 @@ class BookmarkTest extends BaseApiTestCase
             $this->assertArrayHasKey('tags', $bookmark);
             $this->assertIsArray($bookmark['tags']);
 
-            $bookmarkFields = array_filter(array_keys($bookmark), fn ($key) => !str_starts_with($key, '@'));
-            $expectedBookmarkFields = ['id', 'createdAt', 'title', 'url', 'owner', 'tags'];
+            $bookmarkFields = array_keys($bookmark);
+            $expectedBookmarkFields = ['id', 'createdAt', 'title', 'url', 'owner', 'tags', '@iri'];
 
             // Archive and mainImage are optional, add them to expected fields if present
             if (isset($bookmark['archive'])) {
                 $expectedBookmarkFields[] = 'archive';
                 $this->assertIsArray($bookmark['archive'], 'archive should be an unfolded FileObject');
-                $this->assertArrayHasKey('@id', $bookmark['archive']);
                 $this->assertArrayHasKey('contentUrl', $bookmark['archive']);
             }
             if (isset($bookmark['mainImage'])) {
                 $expectedBookmarkFields[] = 'mainImage';
                 $this->assertIsArray($bookmark['mainImage'], 'mainImage should be an unfolded FileObject');
-                $this->assertArrayHasKey('@id', $bookmark['mainImage']);
                 $this->assertArrayHasKey('contentUrl', $bookmark['mainImage']);
             }
 

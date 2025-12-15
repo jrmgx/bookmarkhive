@@ -1,0 +1,153 @@
+### Variables
+
+@baseUrl = https://bookmarkhive.test
+@contentType = application/json
+
+
+### Get own profile
+
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{jwt}}
+
+
+### Update own profile (username)
+
+PATCH {{baseUrl}}/api/users/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwt}}
+
+{
+  "username": "updateduser"
+}
+
+
+### Update own profile (password)
+
+PATCH {{baseUrl}}/api/users/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwt}}
+
+{
+  "password": "newpassword"
+}
+
+
+### Delete own profile
+
+DELETE {{baseUrl}}/api/users/me
+Authorization: Bearer {{jwt}}
+
+
+### Show public profile (no authentication required)
+
+GET {{baseUrl}}/api/profile/{username}}
+
+
+### Register new account
+
+POST {{baseUrl}}/api/account
+Content-Type: {{contentType}}
+
+{
+  "email": "newuser@example.com",
+  "username": "newuser",
+  "password": "password"
+}
+
+
+### Register new account (duplicate email - should fail with 422)
+
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "existing@example.com",
+  "username": "differentuser",
+  "plainPassword": "password"
+}
+
+
+### Register new account (duplicate username - should fail with 422)
+
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "different@example.com",
+  "username": "existinguser",
+  "plainPassword": "password"
+}
+
+
+### Register new account (username too short - should fail with 422)
+
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "username": "ab",
+  "plainPassword": "password"
+}
+
+
+### Register new account (username too long - should fail with 422)
+
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "username": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "plainPassword": "password"
+}
+
+
+### Register new account (minimum valid username length - 3 chars)
+
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "username": "abc",
+  "plainPassword": "password"
+}
+
+
+### Register new account (roles should be ignored)
+
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "username": "testuser",
+  "plainPassword": "password",
+  "roles": ["ROLE_ADMIN"]
+}
+
+
+### Update profile (username too short - should fail with 422)
+
+PATCH {{baseUrl}}/api/users/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwt}}
+
+{
+  "username": "ab"
+}
+
+
+### Update profile (username too long - should fail with 422)
+
+PATCH {{baseUrl}}/api/users/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{jwt}}
+
+{
+  "username": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
+
+
+###
