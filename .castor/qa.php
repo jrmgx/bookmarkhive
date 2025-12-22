@@ -51,13 +51,11 @@ function phpunit(#[AsRawTokens] array $rawTokens = []): int
 {
     io()->section('Running PHPUnit...');
 
-    return docker_exit_code('bin/phpunit ' . implode(' ', $rawTokens), workDir: '/var/www/api');
+    return docker_exit_code('bin/phpunit ' . implode(' ', $rawTokens));
 }
 
 #[AsTask(description: 'Runs PHPStan', aliases: ['phpstan'])]
 function phpstan(
-    #[AsArgument(description: 'Project (api, client)')]
-    ?string $project = null,
     #[AsOption(description: 'Generate baseline file', shortcut: 'b')]
     bool $baseline = false,
 ): int {
@@ -65,18 +63,12 @@ function phpstan(
         install();
     }
 
-    if (null === $project) {
-        return max(phpstan('api'), phpstan('client'));
-    }
-
     io()->section('Running PHPStan...');
 
     $options = $baseline ? '--generate-baseline --allow-empty-baseline' : '';
-
-    $workdir = 'api' === $project ? '/var/www/api' : '/var/www/client';
     $command = \sprintf('phpstan analyse --memory-limit=-1 %s -v', $options);
 
-    return docker_exit_code($command, workDir: $workdir);
+    return docker_exit_code($command);
 }
 
 #[AsTask(description: 'Fixes Coding Style', aliases: ['cs'])]
@@ -89,10 +81,10 @@ function cs(bool $dryRun = false): int
     io()->section('Running PHP CS Fixer...');
 
     if ($dryRun) {
-        return docker_exit_code('php-cs-fixer fix --dry-run --diff', workDir: '/var/www');
+        return docker_exit_code('php-cs-fixer fix --dry-run --diff');
     }
 
-    return docker_exit_code('php-cs-fixer fix', workDir: '/var/www');
+    return docker_exit_code('php-cs-fixer fix');
 }
 
 #[AsTask(description: 'Fixes Twig Coding Style', aliases: ['twig-cs'])]
@@ -105,8 +97,8 @@ function twigCs(bool $dryRun = false): int
     io()->section('Running Twig CS Fixer...');
 
     if ($dryRun) {
-        return docker_exit_code('twig-cs-fixer', workDir: '/var/www');
+        return docker_exit_code('twig-cs-fixer');
     }
 
-    return docker_exit_code('twig-cs-fixer --fix', workDir: '/var/www');
+    return docker_exit_code('twig-cs-fixer --fix');
 }

@@ -164,4 +164,4 @@ RUN cat >> /etc/bash.bashrc <<EOF
 PS1='\[\e[01;33m\]\u \[\e[00;32m\]\w\[\e[0m\] '
 EOF
 
-WORKDIR /var/www
+WORKDIR /var/www/api

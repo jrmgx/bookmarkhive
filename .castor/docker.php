@@ -94,7 +94,7 @@ function up(
 /**
  * @param list<string> $profiles
  */
-#[AsTask(description: 'Stops the infrastructure', aliases: ['stop'])]
+#[AsTask(description: 'Stops the infrastructure', aliases: ['stop', 'down'])]
 function stop(
     #[AsOption(description: 'The service to stop (default: all services)', autocomplete: 'docker\get_service_names')]
     ?string $service = null,
