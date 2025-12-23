@@ -147,10 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTomSelectOptions(): void {
         if (!tagsSelect) return;
 
-        // Prepare options from userTags (using name property)
+        // Prepare options from userTags (using name property and icon)
         const options = userTags.map(tag => ({
             value: tag.name,
-            text: tag.name
+            text: tag.name,
+            icon: tag.icon
         }));
 
         // Clear existing options and add new ones
@@ -179,10 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
             tagsSelect = null;
         }
 
-        // Prepare options from userTags (using name property)
+        // Prepare options from userTags (using name property and icon)
         const options = userTags.map(tag => ({
             value: tag.name,
-            text: tag.name
+            text: tag.name,
+            icon: tag.icon
         }));
 
         // Initialize tom-select with plugins and options
@@ -195,7 +197,22 @@ document.addEventListener('DOMContentLoaded', () => {
             create: true, // allow create
             placeholder: 'Select or create tags',
             maxItems: null,
-            maxOptions: 10, // Show maximum 10 entries in dropdown
+            maxOptions: null, // Show all available options
+            closeAfterSelect: true, // Close dropdown after selecting a tag
+            render: {
+                option: function(data: any, escape: (str: string) => string) {
+                    const iconHtml = data.icon
+                        ? `<span class="ts-tag-icon">${data.icon}</span>`
+                        : '';
+                    return `<div class="ts-option-with-icon">${iconHtml}<span class="ts-option-text">${escape(data.text)}</span></div>`;
+                },
+                item: function(data: any, escape: (str: string) => string) {
+                    const iconHtml = data.icon
+                        ? `<span class="ts-tag-icon">${data.icon}</span>`
+                        : '';
+                    return `<div class="ts-item-with-icon">${iconHtml}<span class="ts-item-text">${escape(data.text)}</span></div>`;
+                }
+            },
             onItemAdd: function() {
                 // Clear the input field after adding an item
                 this.setTextboxValue('');
@@ -318,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // Upload the image file
                         const fileObject = await uploadFileObject(imageBlob, apiHost);
-                        mainImageId = fileObject['@id'];
+                        mainImageId = fileObject['@iri'];
 
                         console.log('Image uploaded successfully:', mainImageId);
                     } catch (error) {

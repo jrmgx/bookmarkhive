@@ -6,9 +6,9 @@ The decentralized social bookmarking service official web extension.
 
 ### Requirements
 
-You will need: 
+You will need:
 - Node.js (v16 or higher)
-- npm or yarn
+- npm
 
 This project uses TypeScript, all source files are in the `src/` directory:
 - Edit `.ts` files in `src/`

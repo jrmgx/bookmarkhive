@@ -29,6 +29,6 @@ async function handleCompressHTML(html: string): Promise<string> {
     }
 
     const fileObject = await compressAndUploadHTML(html, apiHost);
-    return fileObject['@id'];
+    return fileObject['@iri'];
 }
 

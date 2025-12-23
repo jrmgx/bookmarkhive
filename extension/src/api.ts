@@ -4,7 +4,37 @@
  */
 
 import { getBrowserStorage } from './lib/browser';
-import { Tag, TagsResponse, AuthRequest, AuthResponse, BookmarkPayload, FileObjectResponse } from './types';
+import { Tag, ApiTag, TagsResponse, AuthRequest, AuthResponse, BookmarkPayload, FileObjectResponse } from './types';
+
+// ============================================================================
+// Tag Transformation Constants
+// ============================================================================
+
+const META_PREFIX = 'client-o-';
+const LAYOUT_DEFAULT = 'default';
+
+/**
+ * Transforms an API tag to an internal Tag with extracted metadata
+ * @param apiTag The tag from the API
+ * @returns Transformed tag with icon, pinned, and layout extracted from meta
+ */
+function transformTagFromApi(apiTag: ApiTag): Tag {
+    const meta = apiTag.meta || {};
+    const iconValue = meta[`${META_PREFIX}icon`];
+    const icon = iconValue != null && iconValue !== '' && String(iconValue).trim() !== ''
+        ? String(iconValue)
+        : null;
+
+    return {
+        '@iri': apiTag['@iri'],
+        name: apiTag.name,
+        slug: apiTag.slug,
+        isPublic: apiTag.isPublic ?? false,
+        pinned: Boolean(meta[`${META_PREFIX}pinned`] ?? false),
+        layout: String(meta[`${META_PREFIX}layout`] ?? LAYOUT_DEFAULT),
+        icon,
+    };
+}
 
 // ============================================================================
 // Storage Management Functions
@@ -101,10 +131,10 @@ export async function authenticatedFetch(
 
     const headers = new Headers(options.headers);
     headers.set('Authorization', `Bearer ${token}`);
-    headers.set('accept', 'application/ld+json');
-    // Use application/ld+json for API Platform compatibility
+    headers.set('accept', 'application/json');
+    // Use application/json as per OpenAPI spec
     if (!headers.has('Content-Type')) {
-        headers.set('Content-Type', 'application/ld+json');
+        headers.set('Content-Type', 'application/json');
     }
 
     return fetch(url, {
@@ -156,7 +186,7 @@ export async function authenticate(email: string, password: string): Promise<Aut
  * Uploads a file to the API and returns the file object response
  * @param file The file to upload (File or Blob)
  * @param apiHost The API host URL
- * @returns Promise that resolves to the file object response containing @id
+ * @returns Promise that resolves to the file object response containing @iri
  */
 export async function uploadFileObject(
     file: File | Blob,
@@ -172,11 +202,11 @@ export async function uploadFileObject(
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${apiHost}/api/file_objects`, {
+    const response = await fetch(`${apiHost}/api/users/me/files`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
-            'accept': 'application/ld+json'
+            'accept': 'application/json'
             // Don't set Content-Type - browser will set it with boundary for multipart/form-data
         },
         body: formData
@@ -210,8 +240,8 @@ export async function createBookmark(
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
-            'accept': 'application/ld+json',
-            'Content-Type': 'application/ld+json'
+            'accept': 'application/json',
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
     });
@@ -240,8 +270,8 @@ export async function createTag(tagName: string, apiHost: string): Promise<Tag> 
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
-            'accept': 'application/ld+json',
-            'Content-Type': 'application/ld+json'
+            'accept': 'application/json',
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ name: tagName })
     });
@@ -251,13 +281,13 @@ export async function createTag(tagName: string, apiHost: string): Promise<Tag> 
         throw new Error(`Failed to create tag: ${response.status} ${errorText}`);
     }
 
-    const newTag: Tag = await response.json();
-    return newTag;
+    const apiTag: ApiTag = await response.json();
+    return transformTagFromApi(apiTag);
 }
 
 /**
  * Fetches all user tags from the API
- * @returns Array of user tags
+ * @returns Array of all user tags
  */
 export async function fetchUserTags(): Promise<Tag[]> {
     const apiHost = await getAPIHost();
@@ -274,7 +304,7 @@ export async function fetchUserTags(): Promise<Tag[]> {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
-            'accept': 'application/ld+json'
+            'accept': 'application/json'
         }
     });
 
@@ -284,7 +314,8 @@ export async function fetchUserTags(): Promise<Tag[]> {
     }
 
     const tagsData: TagsResponse = await response.json();
-    return tagsData.member || [];
+    // Return all tags from the collection (API should return all tags in one response)
+    return (tagsData.collection || []).map(transformTagFromApi);
 }
 
 /**
@@ -307,15 +338,18 @@ export async function ensureTagsExist(
         const existingTag = existingTags.find(tag => tag.name.toLowerCase() === tagName.toLowerCase());
 
         if (existingTag) {
-            // Use existing tag IRI
-            tagIRIs.push(`${apiHost}/api/users/me/tags/${existingTag.slug}`);
+            // Use existing tag IRI from @iri property or construct it
+            const tagIRI = existingTag['@iri'] || `${apiHost}/api/users/me/tags/${existingTag.slug}`;
+            tagIRIs.push(tagIRI);
         } else {
             // Create new tag
             try {
                 const newTag = await createTag(tagName, apiHost);
                 // Add to existingTags for future reference
                 existingTags.push(newTag);
-                tagIRIs.push(`${apiHost}/api/users/me/tags/${newTag.slug}`);
+                // Use @iri property or construct it
+                const tagIRI = newTag['@iri'] || `${apiHost}/api/users/me/tags/${newTag.slug}`;
+                tagIRIs.push(tagIRI);
                 console.log(`Created new tag: ${tagName} (slug: ${newTag.slug})`);
             } catch (error) {
                 console.error(`Error creating tag "${tagName}":`, error);

@@ -3,22 +3,29 @@
  */
 
 // Tags
-export interface Tag {
-    '@id': string;
-    '@type': string;
-    id: string;
+export interface ApiTag {
+    '@iri': string;
     name: string;
     slug: string;
-    owner: string;
+    isPublic?: boolean;
+    meta?: Record<string, string>;
+}
+
+export interface Tag {
+    '@iri': string;
+    name: string;
+    slug: string;
     isPublic: boolean;
+    pinned: boolean;
+    layout: string;
+    icon: string | null;
 }
 
 export interface TagsResponse {
-    '@context': string;
-    '@id': string;
-    '@type': string;
-    totalItems: number;
-    member: Tag[];
+    collection: ApiTag[];
+    prevPage: boolean;
+    nextPage: boolean;
+    total: number;
 }
 
 // ============================================================================
@@ -77,15 +84,18 @@ export interface AuthResponse {
 export interface BookmarkPayload {
     title: string;
     url: string;
-    mainImage: string;
-    isPublic: boolean;
-    tags?: string[]; // Array of tag IRIs
-    archive?: string; // File object IRI for archived page
+    mainImage?: string | null; // IRI reference to FileObject
+    isPublic?: boolean;
+    tags?: string[]; // Array of tag IRIs (e.g., "/api/users/me/tags/my-tag")
+    archive?: string | null; // IRI reference to FileObject
 }
 
 export interface FileObjectResponse {
-    '@id': string;
-    [key: string]: unknown;
+    '@iri': string;
+    id: string;
+    contentUrl?: string | null;
+    size: number;
+    mime: string;
 }
 
 // ============================================================================

@@ -53,7 +53,7 @@ async function compressHTML(html: string): Promise<Uint8Array> {
  * Compresses HTML and uploads it to the API
  * @param html The HTML string to compress and upload
  * @param apiHost The API host URL
- * @returns The file object response containing @id
+ * @returns The file object response containing @iri
  * @TODO move to logic controller
  */
 export async function compressAndUploadHTML(html: string, apiHost: string): Promise<FileObjectResponse> {
