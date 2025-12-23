@@ -17,5 +17,9 @@ Second, build the api production image:
 - start this image
 
 Third:
+- generate a JWT key pair with `bin/console lexik:jwt:generate-keypair`
+- save the files to the server in `/api/config/jwt/{public|private}.pem`
+
+Last:
 - either you are on Coolify and you expose the api:80
 - or you are on your own, and you should expose the api:80 port to the internet via some router
