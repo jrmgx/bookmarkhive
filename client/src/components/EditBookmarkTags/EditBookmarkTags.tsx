@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import TomSelect from 'tom-select';
 import 'tom-select/dist/css/tom-select.bootstrap5.css';
-import { updateBookmarkTags, getTags, createTag } from '../../services/api';
+import { ErrorAlert } from '../ErrorAlert/ErrorAlert';
+import { updateBookmarkTags, getTags, createTag, ApiError } from '../../services/api';
 import type { Bookmark as BookmarkType, Tag as TagType } from '../../types';
 
 declare global {
@@ -27,6 +28,7 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
   const tomSelectInstanceRef = useRef<TomSelect | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveErrorStatus, setSaveErrorStatus] = useState<number | null>(null);
   const [availableTags, setAvailableTags] = useState<TagType[]>([]);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
   const availableTagsRef = useRef<TagType[]>([]);
@@ -49,6 +51,7 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
 
   const handleModalClose = useCallback(() => {
     setSaveError(null);
+    setSaveErrorStatus(null);
     // Destroy tom-select instance when closing
     if (tomSelectInstanceRef.current) {
       tomSelectInstanceRef.current.destroy();
@@ -188,6 +191,7 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
   useEffect(() => {
     if (bookmark) {
       setSaveError(null);
+      setSaveErrorStatus(null);
       showModal();
     }
   }, [bookmark, showModal]);
@@ -213,6 +217,7 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
 
     setIsSaving(true);
     setSaveError(null);
+    setSaveErrorStatus(null);
 
     try {
       // Get selected tag slugs from tom-select
@@ -227,7 +232,10 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
       onSave();
       hideModal();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to update bookmark tags');
+      const message = err instanceof Error ? err.message : 'Failed to update bookmark tags';
+      const status = err instanceof ApiError ? err.status : null;
+      setSaveError(message);
+      setSaveErrorStatus(status);
     } finally {
       setIsSaving(false);
     }
@@ -257,11 +265,7 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
           </div>
           <form onSubmit={handleFormSubmit}>
             <div className="modal-body">
-              {saveError && (
-                <div className="alert alert-danger" role="alert">
-                  {saveError}
-                </div>
-              )}
+              <ErrorAlert error={saveError} statusCode={saveErrorStatus} />
 
               <div className="mb-3">
                 <label htmlFor="bookmarkTagsSelect" className="form-label">

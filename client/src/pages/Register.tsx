@@ -1,6 +1,7 @@
 import { useState, type FormEvent, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { register } from '../services/api';
+import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
+import { register, ApiError } from '../services/api';
 import { isAuthenticated } from '../services/auth';
 
 export const Register = () => {
@@ -11,6 +12,7 @@ export const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
@@ -35,9 +37,11 @@ export const Register = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setErrorStatus(null);
 
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
+      setErrorStatus(null);
       return;
     }
 
@@ -48,7 +52,10 @@ export const Register = () => {
       // After successful registration, redirect to login
       navigate('/login', { state: { message: 'Account created successfully. Please login.' } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      const status = err instanceof ApiError ? err.status : null;
+      setError(message);
+      setErrorStatus(status);
     } finally {
       setIsLoading(false);
     }
@@ -66,11 +73,7 @@ export const Register = () => {
                   <p className="text-muted mb-0">Create a new account</p>
                 </div>
 
-                {error && (
-                  <div className="alert alert-danger" role="alert">
-                    {error}
-                  </div>
-                )}
+                <ErrorAlert error={error} statusCode={errorStatus} />
 
                 <form onSubmit={handleSubmit}>
                   <div className="mb-3">

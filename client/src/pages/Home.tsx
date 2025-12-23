@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Tag } from '../components/Tag/Tag';
 import { Bookmark } from '../components/Bookmark/Bookmark';
 import { Masonry } from '../components/Masonry/Masonry';
-import { getBookmarks, getTags, getCursorFromUrl } from '../services/api';
+import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
+import { getBookmarks, getTags, getCursorFromUrl, ApiError } from '../services/api';
 import { toggleTag, updateTagParams } from '../utils/tags';
 import type { Bookmark as BookmarkType, Tag as TagType } from '../types';
 import { LAYOUT_DEFAULT, LAYOUT_IMAGE } from '../types';
@@ -23,6 +24,7 @@ export const Home = () => {
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
   const [tags, setTags] = useState<TagType[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [nextPage, setNextPage] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export const Home = () => {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setErrorStatus(null);
     setBookmarks([]);
     setNextPage(null);
     try {
@@ -48,7 +51,10 @@ export const Home = () => {
       setNextPage(bookmarksResponse.nextPage);
       setTags(tagsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      const message = err instanceof Error ? err.message : 'Failed to load data';
+      const status = err instanceof ApiError ? err.status : null;
+      setError(message);
+      setErrorStatus(status);
       setBookmarks([]);
       setTags([]);
     } finally {
@@ -119,11 +125,7 @@ export const Home = () => {
 
   return (
     <>
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      )}
+      <ErrorAlert error={error} statusCode={errorStatus} />
 
       {isLoading ? (
         <div className="text-center pt-5">

@@ -2,6 +2,16 @@ import { getToken, clearToken } from './auth';
 import type { Bookmark, Tag, FileObject, User } from '../types';
 import { LAYOUT_DEFAULT } from '../types';
 
+/**
+ * Custom error class for API errors that includes HTTP status code
+ */
+export class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bookmarkhive.test';
 const META_PREFIX = 'client-o-';
 
@@ -87,7 +97,10 @@ const transformTagToApi = (tag: Tag): ApiTagRequest => {
 const getAuthHeaders = (): HeadersInit => {
   const token = getToken();
   if (!token) {
-    throw new Error('JWT token not found.');
+    clearToken();
+    // Clear tags cache on auth failure since tags are user-specific
+    invalidateTagsCache();
+    throw new ApiError('Authentication failed. Please login again.', 401);
   }
   return {
     'Authorization': `Bearer ${token}`,
@@ -109,10 +122,10 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
       clearToken();
       // Clear tags cache on logout/auth failure since tags are user-specific
       invalidateTagsCache();
-      throw new Error('Authentication failed. Please login again.');
+      throw new ApiError('Authentication failed. Please login again.', 401);
     }
     const errorText = await response.text();
-    throw new Error(errorText || `HTTP error! status: ${response.status}`);
+    throw new ApiError(errorText || `HTTP error! status: ${response.status}`, response.status);
   }
   return response.json();
 };
@@ -335,9 +348,10 @@ export const deleteTag = async (slug: string): Promise<void> => {
       clearToken();
       // Cache already invalidated in handleResponse for 401, but we call it here too for consistency
       invalidateTagsCache();
-      throw new Error('Authentication failed. Please login again.');
+      throw new ApiError('Authentication failed. Please login again.', 401);
     }
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const errorText = await response.text();
+    throw new ApiError(errorText || `HTTP error! status: ${response.status}`, response.status);
   }
   // Invalidate cache since we deleted a tag
   invalidateTagsCache();

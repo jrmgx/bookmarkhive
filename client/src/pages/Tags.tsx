@@ -3,7 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tag } from '../components/Tag/Tag';
 import { Icon } from '../components/Icon/Icon';
 import { EditTag } from '../components/EditTag/EditTag';
-import { getTags } from '../services/api';
+import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
+import { getTags, ApiError } from '../services/api';
 import { toggleTag, updateTagParams } from '../utils/tags';
 import type { Tag as TagType } from '../types';
 
@@ -13,6 +14,7 @@ export const Tags = () => {
   const [searchParams] = useSearchParams();
   const [tags, setTags] = useState<TagType[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const gridRef = useRef<HTMLDivElement>(null);
   const [columnCount, setColumnCount] = useState(0);
@@ -40,11 +42,15 @@ export const Tags = () => {
     const loadTags = async () => {
       setIsLoading(true);
       setError(null);
+      setErrorStatus(null);
       try {
         const tagsData = await getTags();
         setTags(tagsData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load tags');
+        const message = err instanceof Error ? err.message : 'Failed to load tags';
+        const status = err instanceof ApiError ? err.status : null;
+        setError(message);
+        setErrorStatus(status);
         setTags([]);
       } finally {
         setIsLoading(false);
@@ -69,8 +75,13 @@ export const Tags = () => {
     try {
       const tagsData = await getTags();
       setTags(tagsData);
+      setError(null);
+      setErrorStatus(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to refresh tags');
+      const message = err instanceof Error ? err.message : 'Failed to refresh tags';
+      const status = err instanceof ApiError ? err.status : null;
+      setError(message);
+      setErrorStatus(status);
     }
   };
 
@@ -80,11 +91,7 @@ export const Tags = () => {
 
   return (
     <>
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      )}
+      <ErrorAlert error={error} statusCode={errorStatus} />
 
       {isLoading ? (
         <div className="text-center pt-5">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { updateTag } from '../../services/api';
+import { ErrorAlert } from '../ErrorAlert/ErrorAlert';
+import { updateTag, ApiError } from '../../services/api';
 import type { Tag as TagType } from '../../types';
 import { LAYOUT_DEFAULT, LAYOUT_EMBEDDED, LAYOUT_IMAGE } from '../../types';
 
@@ -30,6 +31,7 @@ export const EditTag = ({ tag, onSave, onClose }: EditTagProps) => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveErrorStatus, setSaveErrorStatus] = useState<number | null>(null);
 
   const showModal = useCallback(() => {
     if (modalRef.current && window.bootstrap) {
@@ -55,6 +57,7 @@ export const EditTag = ({ tag, onSave, onClose }: EditTagProps) => {
       pinned: false,
     });
     setSaveError(null);
+    setSaveErrorStatus(null);
     onClose();
   }, [onClose]);
 
@@ -93,6 +96,7 @@ export const EditTag = ({ tag, onSave, onClose }: EditTagProps) => {
 
     setIsSaving(true);
     setSaveError(null);
+    setSaveErrorStatus(null);
 
     try {
       const updatedTag: TagType = {
@@ -109,7 +113,10 @@ export const EditTag = ({ tag, onSave, onClose }: EditTagProps) => {
       onSave();
       hideModal();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to update tag');
+      const message = err instanceof Error ? err.message : 'Failed to update tag';
+      const status = err instanceof ApiError ? err.status : null;
+      setSaveError(message);
+      setSaveErrorStatus(status);
     } finally {
       setIsSaving(false);
     }
@@ -139,11 +146,7 @@ export const EditTag = ({ tag, onSave, onClose }: EditTagProps) => {
           </div>
           <form onSubmit={handleFormSubmit}>
             <div className="modal-body">
-              {saveError && (
-                <div className="alert alert-danger" role="alert">
-                  {saveError}
-                </div>
-              )}
+              <ErrorAlert error={saveError} statusCode={saveErrorStatus} />
 
               <div className="mb-3">
                 <label htmlFor="tagName" className="form-label">
