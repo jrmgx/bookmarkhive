@@ -24,6 +24,7 @@ all in a decentralized manner for greater resilience.
 - [Client](./documentation/Client.md)
 - Limitations
 - 🛠️ [Development](./documentation/Development.md)
+- [Deploy in production](./documentation/Deploy.md)
 
 ## Attributions
 

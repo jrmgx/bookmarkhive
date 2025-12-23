@@ -1,5 +1,5 @@
 /.castor.stub.php
-/infrastructure/docker/docker-compose.override.yml
+/docker-compose.override.yml
 /infrastructure/docker/services/router/certs/*.pem
 
 # Media

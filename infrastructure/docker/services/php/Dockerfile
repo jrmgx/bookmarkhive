@@ -22,7 +22,7 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 
-ARG PHP_VERSION
+ARG PHP_VERSION=8.4
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -42,11 +42,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 
 # Configuration
-COPY base/php-configuration /etc/php/${PHP_VERSION}
+COPY infrastructure/docker/services/php/base/php-configuration /etc/php/${PHP_VERSION}
 
 ENV PHP_VERSION=${PHP_VERSION}
 ENV HOME=/home/app
 ENV COMPOSER_MEMORY_LIMIT=-1
+
+# Composer
+COPY --from=composer/composer:2.8.9 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
@@ -65,10 +68,10 @@ RUN useradd -s /bin/false nginx
 
 FROM common AS api
 
-COPY api/php-configuration /etc/php/${PHP_VERSION}
-COPY api/etc/nginx/. /etc/nginx/
+COPY infrastructure/docker/services/php/api/php-configuration /etc/php/${PHP_VERSION}
+COPY infrastructure/docker/services/php/api/etc/nginx/. /etc/nginx/
 RUN rm -rf /etc/service/
-COPY api/etc/service/. /etc/service/
+COPY infrastructure/docker/services/php/api/etc/service/. /etc/service/
 RUN chmod 777 /etc/service/*/supervise/
 
 RUN phpenmod app-default \
@@ -78,20 +81,17 @@ EXPOSE 80
 
 CMD ["runsvdir", "-P", "/etc/service"]
 
-FROM common AS client
+FROM api AS api-build
 
-COPY client/php-configuration /etc/php/${PHP_VERSION}
-COPY client/etc/nginx/. /etc/nginx/
-RUN rm -rf /etc/service/
-COPY client/etc/service/. /etc/service/
-RUN chmod 777 /etc/service/*/supervise/
+COPY infrastructure/docker/services/php/api/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-RUN phpenmod app-default \
-    && phpenmod app-fpm
+# Copy project source
+COPY api .
 
-EXPOSE 80
+# Build
+RUN composer install --no-dev --optimize-autoloader
 
-CMD ["runsvdir", "-P", "/etc/service"]
+ENTRYPOINT ["entrypoint.sh"]
 
 FROM php-base AS worker
 
@@ -128,12 +128,9 @@ RUN apt-get update \
 #    chmod +x /usr/local/bin/sudo
 
 # Config
-COPY builder/php-configuration /etc/php/${PHP_VERSION}
+COPY infrastructure/docker/services/php/builder/php-configuration /etc/php/${PHP_VERSION}
 RUN phpenmod app-default \
     && phpenmod app-builder
-
-# Composer
-COPY --from=composer/composer:2.8.9 /usr/bin/composer /usr/bin/composer
 
 # Pie
 RUN curl -L --output /usr/local/bin/pie https://github.com/php/pie/releases/download/1.0.0/pie.phar \

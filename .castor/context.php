@@ -27,7 +27,7 @@ function create_default_context(): Context
         'root_dir' => \dirname(__DIR__),
     ];
 
-    if (file_exists($data['root_dir'] . '/infrastructure/docker/docker-compose.override.yml')) {
+    if (file_exists($data['root_dir'] . '/docker-compose.override.yml')) {
         $data['docker_compose_files'][] = 'docker-compose.override.yml';
     }
 

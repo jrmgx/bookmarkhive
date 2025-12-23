@@ -343,7 +343,7 @@ function docker_compose(array $subCommand, ?Context $c = null, array $profiles =
 
     foreach ($c['docker_compose_files'] as $file) {
         $command[] = '-f';
-        $command[] = $c['root_dir'] . '/infrastructure/docker/' . $file;
+        $command[] = $c['root_dir'] . '/' . $file;
     }
 
     $command = array_merge($command, $subCommand);
@@ -412,19 +412,6 @@ function docker_exit_code(
     );
 
     return $process->getExitCode() ?? 0;
-}
-
-// Mac users have a lot of problems running Yarn / Webpack on the Docker stack
-// so this func allow them to run these tools on their host
-function run_in_docker_or_locally_for_mac(string $command, ?Context $c = null): void
-{
-    $c ??= context();
-
-    if ($c['macos']) {
-        run($command, context: $c->withWorkingDirectory($c['root_dir']));
-    } else {
-        docker_compose_run($command, c: $c);
-    }
 }
 
 #[AsTask(description: 'Push images cache to the registry', namespace: 'docker', name: 'push', aliases: ['push'])]

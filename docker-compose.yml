@@ -1,15 +1,17 @@
-# Templates to factorize the service definitions
+# This docker compose file is not production ready
+# ⚠️ Don't use it in production
 x-templates:
     worker_base: &worker_base
         build:
-            context: services/php
+            dockerfile: infrastructure/docker/services/php/Dockerfile
+            context: ./
             target: worker
         user: "${USER_ID}:${USER_ID}"
         depends_on:
             postgres:
                 condition: service_healthy
         volumes:
-            - "../..:/var/www:cached"
+            - "./:/var/www:cached"
         profiles:
             - worker
 
@@ -18,10 +20,10 @@ volumes:
 
 services:
     router:
-        build: services/router
+        build: infrastructure/docker/services/router
         volumes:
             - "/var/run/docker.sock:/var/run/docker.sock"
-            - "./services/router/certs:/etc/ssl/certs"
+            - "./infrastructure/docker/services/router/certs:/etc/ssl/certs"
         ports:
             - "80:80"
             - "443:443"
@@ -56,12 +58,13 @@ services:
 
     api:
         build:
-            context: services/php
+            dockerfile: infrastructure/docker/services/php/Dockerfile
+            context: ./
             target: api
         user: "${USER_ID}:${USER_ID}"
         volumes:
-            - "../..:/var/www:cached"
-            - "../../.home:/home/app:cached"
+            - "./:/var/www:cached"
+            - "./.home:/home/app:cached"
         depends_on:
             postgres:
                 condition: service_healthy
@@ -81,9 +84,10 @@ services:
 
     client:
         build:
-            context: services/nginx-client
+            dockerfile: infrastructure/docker/services/nginx-client/Dockerfile
+            context: ./
         volumes:
-            - "../../client/dist:/var/www/client/dist:cached"
+            - "./client/dist:/var/www/client/dist:cached"
         profiles:
             - default
         labels:
@@ -101,7 +105,8 @@ services:
 
     builder:
         build:
-            context: services/php
+            dockerfile: infrastructure/docker/services/php/Dockerfile
+            context: ./
             target: builder
         init: true
         user: "${USER_ID}:${USER_ID}"
@@ -113,8 +118,8 @@ services:
             - BUILD_NUMBER # Jenkins, TeamCity
             - RUN_ID # TaskCluster, dsari
         volumes:
-            - "../..:/var/www:cached"
-            - "../../.home:/home/app:cached"
+            - "./:/var/www:cached"
+            - "./.home:/home/app:cached"
             # Needed when $XDG_ env vars have overridden, to persist the yarn
             # cache between builder and watcher, adapt according to the location
             # of $XDG_DATA_HOME
