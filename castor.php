@@ -105,7 +105,9 @@ function fixtures(): void
 {
     io()->title('Loads fixtures');
 
-    docker_compose_run('bin/console foundry:load-stories -n');
+    docker_compose_run('bin/console doctrine:database:drop --force');
+    migrate();
+    docker_compose_run('bin/console foundry:load-stories -n --append');
 }
 
 #[AsTask(namespace: 'dev', description: 'Start all messenger consumers', aliases: ['consume'])]
