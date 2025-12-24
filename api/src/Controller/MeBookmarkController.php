@@ -6,7 +6,6 @@ use App\Config\RouteAction;
 use App\Config\RouteType;
 use App\Entity\Bookmark;
 use App\Entity\User;
-use App\Helper\UrlHelper;
 use App\Message\BookmarkArchiveToPdfMessage;
 use App\Security\Voter\BookmarkVoter;
 use Doctrine\ORM\Exception\ORMException;
@@ -51,8 +50,7 @@ final class MeBookmarkController extends BookmarkController
         Bookmark $bookmark,
     ): JsonResponse {
         // Find previous version and outdate it
-        $normalizedUrl = UrlHelper::normalize($bookmark->url);
-        $existingBookmark = $this->bookmarkRepository->findLastOneByOwnerAndUrl($user, $normalizedUrl)
+        $existingBookmark = $this->bookmarkRepository->findLastOneByOwnerAndUrl($user, $bookmark->url)
             ->getQuery()->getOneOrNullResult()
         ;
         if ($existingBookmark) {
@@ -82,6 +80,20 @@ final class MeBookmarkController extends BookmarkController
         Bookmark $bookmark,
     ): JsonResponse {
         return $this->jsonResponseBuilder->single($bookmark, ['bookmark:owner', 'tag:owner']);
+    }
+
+    #[Route(path: '/{id}/history', name: RouteAction::History->value, methods: ['GET'])]
+    #[IsGranted(attribute: BookmarkVoter::OWNER, subject: 'bookmark', statusCode: Response::HTTP_NOT_FOUND)]
+    public function history(
+        #[CurrentUser] User $user,
+        Bookmark $bookmark,
+    ): JsonResponse {
+        // If you call history on an outdated version it will also work by design
+        $bookmarks = $this->bookmarkRepository->findOutdatedByOwnerAndUrl($user, $bookmark->url)
+            ->getQuery()->getResult()
+        ;
+
+        return $this->jsonResponseBuilder->collection($bookmarks, ['bookmark:owner', 'tag:owner']);
     }
 
     #[Route(path: '/{id}', name: RouteAction::Patch->value, methods: ['PATCH'])]

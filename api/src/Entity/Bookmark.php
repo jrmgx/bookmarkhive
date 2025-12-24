@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Helper\UrlHelper;
 use App\Repository\BookmarkRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -16,11 +17,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[Context([DateTimeNormalizer::FORMAT_KEY => \DateTime::ATOM])]
 #[ORM\Entity(repositoryClass: BookmarkRepository::class)]
+#[ORM\Index(name: 'domain_idx', fields: ['domain'])]
 class Bookmark
 {
-    #[Groups(['bookmark:owner', 'bookmark:profile', /*temp*/ 'bookmark:create'])]
+    #[Groups(['bookmark:owner', 'bookmark:profile'])]
     #[ORM\Id, ORM\Column(type: 'uuid')]
-    public /*private(set)*/ string $id;
+    public string $id;
 
     #[Groups(['bookmark:owner', 'bookmark:profile'])]
     public \DateTimeImmutable $createdAt {
@@ -38,7 +40,8 @@ class Bookmark
     public string $url {
         set {
             $this->url = $value;
-            $this->domain = self::calculateDomain($value);
+            $this->normalizedUrl = UrlHelper::normalize($value);
+            $this->domain = UrlHelper::calculateDomain($value);
         }
     }
 
@@ -59,6 +62,9 @@ class Bookmark
     #[Groups(['bookmark:profile', 'bookmark:owner'])]
     #[ORM\Column]
     public string $domain;
+
+    #[ORM\Column]
+    public string $normalizedUrl;
 
     /** @var Collection<int, Tag>|array<int, Tag> */
     #[Groups(['bookmark:owner', 'bookmark:profile', 'bookmark:create'])]
@@ -82,19 +88,5 @@ class Bookmark
     {
         $this->id = Uuid::v7()->toString();
         $this->tags = new ArrayCollection();
-    }
-
-    /**
-     * Opinionated: remove `www` and `m` (for mobile most of the time) from domain to normalize a bit.
-     */
-    private static function calculateDomain(string $url): string
-    {
-        $host = parse_url($url, \PHP_URL_HOST);
-
-        if (!$host) {
-            return '';
-        }
-
-        return (string) preg_replace('`^(www|m)\.`', '', $host);
     }
 }

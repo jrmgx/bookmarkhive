@@ -669,6 +669,76 @@ class BookmarkTest extends BaseApiTestCase
         ];
     }
 
+    public function testBookmarkHistory(): void
+    {
+        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+
+        // Create first bookmark (Version 1)
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'title' => 'Version 1',
+                // We will even play a bit with the url to test the normalization process
+                'url' => 'https://example.com/bookmark/dir/file.html?param=some&second=2',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        // Create second bookmark (Version 2) - this will mark Version 1 as outdated
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'title' => 'Version 2',
+                'url' => 'https://example.com/bookmark/dir/file.html?second=2&param=some',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        // Create third bookmark (Version 3) - this will mark Version 2 as outdated
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'title' => 'Version 3',
+                'url' => 'https://example.com/bookmark/dir/file.html?param=some&second=2',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        // Create fourth bookmark (Version 4) - this will mark Version 3 as outdated
+        $this->request('POST', '/api/users/me/bookmarks', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'title' => 'Version 4',
+                'url' => 'https://example.com/bookmark/dir/file.html?param=some&second=2',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+        $bookmark4 = $this->getResponseArray();
+
+        $this->assertUnauthorized('GET', "/api/users/me/bookmarks/{$bookmark4['id']}/history");
+
+        // Call history endpoint on the latest bookmark (Version 4)
+        $this->request('GET', "/api/users/me/bookmarks/{$bookmark4['id']}/history", [
+            'auth_bearer' => $token,
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        $json = $this->dump($this->getResponseArray());
+
+        // Should return 3 bookmarks (versions 3, 2, 1) - all except the latest (version 4)
+        $this->assertArrayHasKey('collection', $json);
+        $this->assertCount(3, $json['collection']);
+
+        // Verify the order: should be descending (Version 3, Version 2, Version 1)
+        $this->assertEquals('Version 3', $json['collection'][0]['title'], 'First bookmark should be Version 3');
+        $this->assertEquals('Version 2', $json['collection'][1]['title'], 'Second bookmark should be Version 2');
+        $this->assertEquals('Version 1', $json['collection'][2]['title'], 'Third bookmark should be Version 1');
+    }
+
     private function assertOtherUserCannotAccess(string $method, string $url, array $options = []): void
     {
         [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');

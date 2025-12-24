@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Bookmark;
 use App\Entity\User;
+use App\Helper\UrlHelper;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -50,15 +51,38 @@ class BookmarkRepository extends ServiceEntityRepository
         return $onlyPublic ? $qb->andWhere('o.isPublic = true') : $qb;
     }
 
-    public function findLastOneByOwnerAndUrl(User $owner, string $normalizedUrl): QueryBuilder
+    /**
+     * @param string $url The url will be normalized
+     */
+    public function findLastOneByOwnerAndUrl(User $owner, string $url): QueryBuilder
     {
+        $normalizedUrl = UrlHelper::normalize($url);
+
         return $this->createQueryBuilder('o')
             ->andWhere('o.owner = :owner')
             ->setParameter('owner', $owner)
-            ->andWhere('o.url = :url')
-            ->setParameter('url', $normalizedUrl)
+            ->andWhere('o.normalizedUrl = :normalizedUrl')
+            ->setParameter('normalizedUrl', $normalizedUrl)
             ->orderBy('o.id', 'DESC')
             ->setMaxResults(1)
+        ;
+    }
+
+    /**
+     * @param string $url The url will be normalized
+     */
+    public function findOutdatedByOwnerAndUrl(User $owner, string $url): QueryBuilder
+    {
+        $normalizedUrl = UrlHelper::normalize($url);
+
+        return $this->createQueryBuilder('o')
+            ->andWhere('o.owner = :owner')
+            ->setParameter('owner', $owner)
+            ->andWhere('o.normalizedUrl = :normalizedUrl')
+            ->setParameter('normalizedUrl', $normalizedUrl)
+            ->andWhere('o.outdated = :true')
+            ->setParameter('true', true)
+            ->orderBy('o.id', 'DESC')
         ;
     }
 

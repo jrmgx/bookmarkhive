@@ -15,6 +15,13 @@ class UrlHelperTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
+    #[DataProvider('urlNormalizationProvider')]
+    public function testCalculateDomain(string $input, string $_): void
+    {
+        $result = UrlHelper::calculateDomain($input);
+        $this->assertEquals('example.com', $result);
+    }
+
     /**
      * @return array<string, array{0: string, 1: string}>
      */
@@ -31,6 +38,14 @@ class UrlHelperTest extends TestCase
             ],
             'url with path' => [
                 'https://example.com/path/to/page',
+                'example.com/path/to/page',
+            ],
+            'url with path and www' => [
+                'https://www.example.com/path/to/page',
+                'example.com/path/to/page',
+            ],
+            'url with path and m (mobile)' => [
+                'https://m.example.com/path/to/page',
                 'example.com/path/to/page',
             ],
             'url with query params' => [
@@ -75,7 +90,7 @@ class UrlHelperTest extends TestCase
             ],
             'url with root path' => [
                 'https://example.com/',
-                'example.com/',
+                'example.com',
             ],
             'url without path' => [
                 'https://example.com',

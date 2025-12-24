@@ -29,12 +29,29 @@ class UrlHelper
 
         $newQuery = http_build_query($queryParams);
 
-        $normalizedUrl = ($parts['host'] ?? '') . ($parts['path'] ?? '');
+        $host = $parts['host'] ?? '';
+        $host = (string) preg_replace('`^(www|m)\.`', '', $host);
+
+        $normalizedUrl = $host . ($parts['path'] ?? '');
 
         if ('' !== $newQuery) {
             $normalizedUrl .= '?' . $newQuery;
         }
 
-        return $normalizedUrl;
+        return trim($normalizedUrl, '/');
+    }
+
+    /**
+     * Opinionated: remove `www` and `m` (for mobile most of the time) from domain to normalize a bit.
+     */
+    public static function calculateDomain(string $url): string
+    {
+        $host = parse_url($url, \PHP_URL_HOST);
+
+        if (!$host) {
+            return '';
+        }
+
+        return (string) preg_replace('`^(www|m)\.`', '', $host);
     }
 }
