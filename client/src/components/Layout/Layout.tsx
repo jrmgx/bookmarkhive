@@ -5,16 +5,6 @@ import { getTags } from '../../services/api';
 import { toggleTag, updateTagParams } from '../../utils/tags';
 import type { Tag as TagType } from '../../types';
 
-declare global {
-  interface Window {
-    bootstrap?: {
-      Offcanvas: {
-        getInstance: (element: HTMLElement | string) => { hide: () => void } | null;
-      };
-    };
-  }
-}
-
 export const Layout = () => {
   const location = useLocation();
   const isTagsPage = location.pathname === '/tags';
@@ -43,7 +33,7 @@ export const Layout = () => {
       try {
         const tagsData = await getTags();
         setTags(tagsData);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Failed to load tags:', err);
         setTags([]);
       } finally {

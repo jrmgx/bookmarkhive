@@ -4,17 +4,6 @@ import { updateTag, ApiError } from '../../services/api';
 import type { Tag as TagType } from '../../types';
 import { LAYOUT_DEFAULT, LAYOUT_EMBEDDED, LAYOUT_IMAGE } from '../../types';
 
-declare global {
-  interface Window {
-    bootstrap?: {
-      Modal: {
-        getInstance: (element: HTMLElement | string) => { show: () => void; hide: () => void } | null;
-        getOrCreateInstance: (element: HTMLElement | string) => { show: () => void; hide: () => void };
-      };
-    };
-  }
-}
-
 interface EditTagProps {
   tag: TagType | null;
   onSave: () => void;
@@ -112,7 +101,7 @@ export const EditTag = ({ tag, onSave, onClose }: EditTagProps) => {
       window.dispatchEvent(new CustomEvent('tagsUpdated'));
       onSave();
       hideModal();
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to update tag';
       const status = err instanceof ApiError ? err.status : null;
       setSaveError(message);

@@ -27,9 +27,13 @@ export function getCursorFromUrl(url: string | null): string | undefined {
   if (!url) return undefined;
   try {
     // Handle relative URLs (e.g., /api/users/me/bookmarks?after=...)
+    // Prefer environment variable, fallback to window.location.origin
+    const envBaseUrl = (import.meta as any)?.env?.VITE_API_BASE_URL;
+    const baseUrl = envBaseUrl || window.location.origin;
+
     const urlObj = url.startsWith('http')
       ? new URL(url)
-      : new URL(url, typeof window !== 'undefined' ? window.location.origin : 'https://bookmarkhive.test');
+      : new URL(url, baseUrl);
     return urlObj.searchParams.get('after') || undefined;
   } catch {
     return undefined;

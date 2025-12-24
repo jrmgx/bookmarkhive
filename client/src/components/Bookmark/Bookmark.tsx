@@ -14,7 +14,7 @@ interface BookmarkProps {
   layout: string;
   selectedTagSlugs: string[];
   onTagToggle?: (slug: string) => void;
-  onEdit?: (id: string) => void;
+  onShow?: (id: string) => void;
 }
 
 export const Bookmark = ({
@@ -22,7 +22,7 @@ export const Bookmark = ({
   layout,
   selectedTagSlugs,
   onTagToggle,
-  onEdit
+  onShow
 }: BookmarkProps) => {
 
   const isEmbedded = layout === LAYOUT_EMBEDDED;
@@ -38,10 +38,10 @@ export const Bookmark = ({
     }
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
+  const handleShow = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (onEdit) {
-      onEdit(bookmark.id);
+    if (onShow) {
+      onShow(bookmark.id);
     }
   };
 
@@ -195,10 +195,10 @@ export const Bookmark = ({
           <div>
             <button
               className="btn btn-outline-secondary border-0"
-              onClick={handleEdit}
-              aria-label="Edit bookmark"
+              onClick={handleShow}
+              aria-label="Show bookmark"
             >
-              <Icon name="pencil" />
+              <Icon name="eye" />
             </button>
             <button
               className="btn btn-outline-secondary border-0"

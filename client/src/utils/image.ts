@@ -7,7 +7,11 @@ export const getImageUrl = (url: string | null | undefined): string | undefined 
     return url;
   }
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://bookmarkhive.test';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    console.error('VITE_API_BASE_URL environment variable is not set');
+    return undefined;
+  }
   const cleanBaseUrl = baseUrl.replace(/\/$/, '');
   const cleanUrl = url.startsWith('/') ? url : `/${url}`;
 

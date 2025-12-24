@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tag } from '../components/Tag/Tag';
 import { Bookmark } from '../components/Bookmark/Bookmark';
 import { Masonry } from '../components/Masonry/Masonry';
@@ -19,7 +19,7 @@ const layoutForTags = (selectedTags: TagType[]): string => {
 };
 
 export const Home = () => {
-
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
   const [tags, setTags] = useState<TagType[]>([]);
@@ -50,7 +50,7 @@ export const Home = () => {
       setBookmarks(bookmarksResponse.collection);
       setNextPage(bookmarksResponse.nextPage);
       setTags(tagsData);
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load data';
       const status = err instanceof ApiError ? err.status : null;
       setError(message);
@@ -87,7 +87,7 @@ export const Home = () => {
       const response = await getBookmarks(tagQueryString, cursor);
       setBookmarks((prev) => [...prev, ...response.collection]);
       setNextPage(response.nextPage);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to load more bookmarks:', err);
     } finally {
       setIsLoadingMore(false);
@@ -123,6 +123,10 @@ export const Home = () => {
     setSearchParams(newParams);
   };
 
+  const handleShow = (id: string) => {
+    navigate(`/bookmarks/${id}`);
+  };
+
   return (
     <>
       <ErrorAlert error={error} statusCode={errorStatus} />
@@ -146,6 +150,7 @@ export const Home = () => {
                   layout={layout}
                   selectedTagSlugs={selectedTagSlugs}
                   onTagToggle={handleTagToggle}
+                  onShow={handleShow}
                 />
               ))}
             </div>

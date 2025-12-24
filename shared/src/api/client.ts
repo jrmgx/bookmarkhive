@@ -9,21 +9,16 @@ import type {
   UserCreate,
   UserOwner,
   BookmarkCreate,
-  BookmarkUpdate,
   BookmarkOwner,
   Bookmark,
   BookmarksResponse,
   Tag,
   ApiTag,
-  TagCollection,
-  TagCreate,
-  TagUpdate,
   FileObject,
 } from '../types';
 import { ApiError } from './error';
 import type { ApiConfig } from './config';
 import { transformTagFromApi, transformTagToApi } from '../tag/transform';
-import { getCursorFromUrl } from '../utils/url';
 
 /**
  * API client interface returned by createApiClient
@@ -63,7 +58,7 @@ export function createApiClient(config: ApiConfig): ApiClient {
   const { baseUrl, storage, enableCache = true } = config;
 
   // Tag cache state
-  let tagsCache: Tag[] | null = enableCache ? null : undefined;
+  let tagsCache: Tag[] | null = null;
   let tagsCachePromise: Promise<Tag[]> | null = null;
 
   /**

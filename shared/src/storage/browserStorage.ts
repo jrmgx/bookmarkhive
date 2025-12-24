@@ -41,8 +41,9 @@ export function createBrowserStorageAdapter(): StorageAdapter {
       return new Promise((resolve) => {
         storage.local.get(['jwtToken'], (result: { jwtToken?: string }) => {
           // @ts-expect-error - chrome.runtime.lastError may not exist
-          if (chrome?.runtime?.lastError) {
-            console.error('Error retrieving token:', chrome.runtime.lastError.message);
+          const browserAPI = typeof chrome !== 'undefined' ? chrome : typeof browser !== 'undefined' ? browser : null;
+          if (browserAPI?.runtime?.lastError) {
+            console.error('Error retrieving token:', browserAPI.runtime.lastError.message);
             resolve(null);
           } else {
             resolve(result.jwtToken || null);
@@ -61,8 +62,9 @@ export function createBrowserStorageAdapter(): StorageAdapter {
       return new Promise((resolve) => {
         storage.local.set({ jwtToken: token }, () => {
           // @ts-expect-error - chrome.runtime.lastError may not exist
-          if (chrome?.runtime?.lastError) {
-            console.error('Error storing token:', chrome.runtime.lastError.message);
+          const browserAPI = typeof chrome !== 'undefined' ? chrome : typeof browser !== 'undefined' ? browser : null;
+          if (browserAPI?.runtime?.lastError) {
+            console.error('Error storing token:', browserAPI.runtime.lastError.message);
           }
           resolve();
         });
@@ -79,8 +81,9 @@ export function createBrowserStorageAdapter(): StorageAdapter {
       return new Promise((resolve) => {
         storage.local.remove(['jwtToken'], () => {
           // @ts-expect-error - chrome.runtime.lastError may not exist
-          if (chrome?.runtime?.lastError) {
-            console.error('Error clearing token:', chrome.runtime.lastError.message);
+          const browserAPI = typeof chrome !== 'undefined' ? chrome : typeof browser !== 'undefined' ? browser : null;
+          if (browserAPI?.runtime?.lastError) {
+            console.error('Error clearing token:', browserAPI.runtime.lastError.message);
           }
           resolve();
         });
@@ -97,8 +100,9 @@ export function createBrowserStorageAdapter(): StorageAdapter {
       return new Promise((resolve) => {
         storage.local.get(['apiHost'], (result: { apiHost?: string }) => {
           // @ts-expect-error - chrome.runtime.lastError may not exist
-          if (chrome?.runtime?.lastError) {
-            console.error('Error retrieving API host:', chrome.runtime.lastError.message);
+          const browserAPI = typeof chrome !== 'undefined' ? chrome : typeof browser !== 'undefined' ? browser : null;
+          if (browserAPI?.runtime?.lastError) {
+            console.error('Error retrieving API host:', browserAPI.runtime.lastError.message);
             resolve(null);
           } else {
             resolve(result.apiHost || null);

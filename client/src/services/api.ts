@@ -5,7 +5,10 @@
 
 import { createApiClient, createLocalStorageAdapter, getCursorFromUrl, type ApiClient, type BookmarksResponse, type Bookmark, type Tag, type UserOwner } from '@shared';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bookmarkhive.test';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+if (!BASE_URL) {
+  throw new Error('VITE_API_BASE_URL environment variable is not set. Please check your .env file.');
+}
 
 // Create API client instance with localStorage adapter
 const apiClient: ApiClient = createApiClient({

@@ -46,7 +46,7 @@ export const Tags = () => {
       try {
         const tagsData = await getTags();
         setTags(tagsData);
-      } catch (err) {
+      } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load tags';
         const status = err instanceof ApiError ? err.status : null;
         setError(message);
@@ -77,7 +77,7 @@ export const Tags = () => {
       setTags(tagsData);
       setError(null);
       setErrorStatus(null);
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to refresh tags';
       const status = err instanceof ApiError ? err.status : null;
       setError(message);

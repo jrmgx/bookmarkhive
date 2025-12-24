@@ -5,17 +5,6 @@ import { ErrorAlert } from '../ErrorAlert/ErrorAlert';
 import { updateBookmarkTags, getTags, createTag, ApiError } from '../../services/api';
 import type { Bookmark as BookmarkType, Tag as TagType } from '../../types';
 
-declare global {
-  interface Window {
-    bootstrap?: {
-      Modal: {
-        getInstance: (element: HTMLElement | string) => { show: () => void; hide: () => void } | null;
-        getOrCreateInstance: (element: HTMLElement | string) => { show: () => void; hide: () => void };
-      };
-    };
-  }
-}
-
 interface EditBookmarkTagsProps {
   bookmark: BookmarkType | null;
   onSave: () => void;
@@ -68,7 +57,7 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
         const tags = await getTags();
         setAvailableTags(tags);
         availableTagsRef.current = tags;
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Failed to load tags:', err);
         setAvailableTags([]);
         availableTagsRef.current = [];
@@ -95,13 +84,13 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
     }
 
     // Set initial selected values (tag slugs)
-    const selectedSlugs = bookmark.tags.map(tag => tag.slug);
+    const selectedSlugs = bookmark.tags.map((tag: TagType) => tag.slug);
     selectRef.current.innerHTML = '';
-    selectedSlugs.forEach(slug => {
+    selectedSlugs.forEach((slug: string) => {
       const option = document.createElement('option');
       option.value = slug;
       option.selected = true;
-      const tag = bookmark.tags.find(t => t.slug === slug);
+      const tag = bookmark.tags.find((t: TagType) => t.slug === slug);
       option.textContent = tag ? `${tag.icon ? `${tag.icon} ` : ''}${tag.name}` : slug;
       selectRef.current?.appendChild(option);
     });
@@ -115,10 +104,10 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
           tomSelect.blur();
         }, 0);
       },
-      create: async (input: string, callback: (item: { value: string; text: string } | null) => void) => {
+      create: (async (input: string, callback: (item?: { value: string; text: string }) => void) => {
         const tagName = input.trim();
         if (!tagName) {
-          callback(null);
+          callback(undefined);
           return;
         }
 
@@ -153,16 +142,15 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
           }
           // Return the new option
           callback(newOption);
-        } catch (err) {
+        } catch (err: unknown) {
           console.error('Failed to create tag:', err);
-          callback(null);
+          callback(undefined);
         }
-      },
-      allowEmpty: true,
+      }) as any,
       maxItems: null,
       valueField: 'value',
       labelField: 'text',
-      searchField: 'text',
+      searchField: ['text'],
       options: availableTags.map(tag => ({
         value: tag.slug,
         text: `${tag.icon ? `${tag.icon} ` : ''}${tag.name}`,
@@ -231,7 +219,7 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
       window.dispatchEvent(new CustomEvent('bookmarksUpdated'));
       onSave();
       hideModal();
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to update bookmark tags';
       const status = err instanceof ApiError ? err.status : null;
       setSaveError(message);

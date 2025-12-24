@@ -3,6 +3,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Tags } from './pages/Tags';
+import { ShowBookmark } from './pages/ShowBookmark';
 import { Styleguide } from './pages/Styleguide';
 import { Layout } from './components/Layout/Layout';
 import { isAuthenticated } from './services/auth';
@@ -37,6 +38,7 @@ function App() {
           }
         >
           <Route path="/tags" element={<Tags />} />
+          <Route path="/bookmarks/:id" element={<ShowBookmark />} />
           <Route path="/" element={<Home />} />
         </Route>
       </Routes>

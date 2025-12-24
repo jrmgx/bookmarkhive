@@ -51,7 +51,7 @@ export const Register = () => {
       await register({ email, password, username });
       // After successful registration, redirect to login
       navigate('/login', { state: { message: 'Account created successfully. Please login.' } });
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       const status = err instanceof ApiError ? err.status : null;
       setError(message);

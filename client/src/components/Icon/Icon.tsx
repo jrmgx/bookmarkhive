@@ -1,5 +1,5 @@
 interface IconProps {
-  name: 'pencil' | 'share-fat' | 'play';
+  name: 'pencil' | 'share-fat' | 'play' | 'eye' | 'arrow-left';
   className?: string;
   width?: number | string;
   height?: number | string;
@@ -20,6 +20,20 @@ export const Icon = ({ name, className, width = 16, height = 16, style }: IconPr
         <path d="m227.31 73.37l-44.68-44.69a16 16 0 0 0-22.63 0L36.69 152A15.86 15.86 0 0 0 32 163.31V208a16 16 0 0 0 16 16h44.69a15.86 15.86 0 0 0 11.31-4.69L227.31 96a16 16 0 0 0 0-22.63M51.31 160L136 75.31L152.69 92L68 176.68ZM48 179.31L76.69 208H48Zm48 25.38L79.31 188L164 103.31L180.69 120Zm96-96L147.31 64l24-24L216 84.68Z" />
       </svg>
     );
+  }
+
+  if (name === 'eye') {
+    return (
+      <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width={width}
+      height={height}
+      className={className}
+    >
+      <path fill="currentColor" d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0" />
+    </svg>
+    )
   }
 
   if (name === 'share-fat') {
@@ -48,6 +62,22 @@ export const Icon = ({ name, className, width = 16, height = 16, style }: IconPr
         style={style}
       >
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
+      </svg>
+    );
+  }
+
+  if (name === 'arrow-left') {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 256 256"
+        width={width}
+        height={height}
+        className={className}
+        fill="currentColor"
+        style={style}
+      >
+        <path d="M224 128a8 8 0 0 1-8 8H59.31l58.35 58.34a8 8 0 0 1-11.32 11.32l-72-72a8 8 0 0 1 0-11.32l72-72a8 8 0 0 1 11.32 11.32L59.31 120H216a8 8 0 0 1 8 8Z" />
       </svg>
     );
   }
