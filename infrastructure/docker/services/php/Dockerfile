@@ -85,6 +85,12 @@ CMD ["runsvdir", "-P", "/etc/service"]
 
 FROM api AS api-build
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        supervisor \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
+
 COPY infrastructure/docker/services/php/api/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

@@ -10,3 +10,4 @@
 .twig-cs-fixer.cache
 /var
 /client/.env
+*.afdesign
