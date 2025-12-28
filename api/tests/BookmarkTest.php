@@ -21,9 +21,9 @@ class BookmarkTest extends BaseApiTestCase
         BookmarkFactory::createMany(3, ['owner' => $user, 'tags' => new ArrayCollection([$tag1, $tag2])]);
         BookmarkFactory::createMany(2, ['owner' => $user, 'tags' => new ArrayCollection([$tag1])]);
 
-        $this->assertUnauthorized('GET', '/api/users/me/bookmarks');
+        $this->assertUnauthorized('GET', '/users/me/bookmarks');
 
-        $this->request('GET', '/api/users/me/bookmarks', ['auth_bearer' => $token]);
+        $this->request('GET', '/users/me/bookmarks', ['auth_bearer' => $token]);
         $this->assertResponseIsSuccessful();
 
         $json = $this->dump($this->getResponseArray());
@@ -73,7 +73,7 @@ class BookmarkTest extends BaseApiTestCase
             'tags' => new ArrayCollection([$tag1, $tag2, $tagPrivate]),
         ]);
 
-        $this->request('GET', '/api/users/me/bookmarks?tags=tag-one,tag-two', [
+        $this->request('GET', '/users/me/bookmarks?tags=tag-one,tag-two', [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
@@ -88,7 +88,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertCount(3, $json['collection'][0]['tags']); // All tags
         $this->assertBookmarkOwnerCollection($json['collection']);
 
-        $this->request('GET', '/api/users/me/bookmarks?tags=private-tag', [
+        $this->request('GET', '/users/me/bookmarks?tags=private-tag', [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
@@ -105,7 +105,7 @@ class BookmarkTest extends BaseApiTestCase
         $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
         $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
 
-        $this->assertUnauthorized('POST', '/api/users/me/bookmarks', [
+        $this->assertUnauthorized('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'title' => 'Test Bookmark',
@@ -113,15 +113,15 @@ class BookmarkTest extends BaseApiTestCase
             ],
         ]);
 
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
                 'title' => 'Test Bookmark',
                 'url' => 'https://example.com',
                 'tags' => [
-                    "/api/users/me/tags/{$tag1->slug}",
-                    "/api/users/me/tags/{$tag2->slug}",
+                    "/users/me/tags/{$tag1->slug}",
+                    "/users/me/tags/{$tag2->slug}",
                 ],
             ],
         ]);
@@ -140,7 +140,7 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
 
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -163,13 +163,13 @@ class BookmarkTest extends BaseApiTestCase
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
 
         // Use unexistant IRI (does not exist)
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
                 'title' => 'Bookmark With Invalid Tag',
                 'url' => 'https://example.com',
-                'tags' => ['/api/users/me/tags/nonexistent-tag-iri'],
+                'tags' => ['/users/me/tags/nonexistent-tag-iri'],
             ],
         ]);
 
@@ -179,7 +179,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertArrayHasKey('error', $json, 'Error message should be present in response.');
 
         // Use invalid IRI (does not parse)
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -201,7 +201,7 @@ class BookmarkTest extends BaseApiTestCase
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
         $file = new UploadedFile(__DIR__ . '/data/image_01.jpg', 'image_01.jpg');
 
-        $this->request('POST', '/api/users/me/files', [
+        $this->request('POST', '/users/me/files', [
             'headers' => ['Content-Type' => 'multipart/form-data'],
             'auth_bearer' => $token,
             'extra' => [
@@ -214,7 +214,7 @@ class BookmarkTest extends BaseApiTestCase
         $fileJson = $this->getResponseArray();
         $fileObjectIri = $fileJson['@iri'];
 
-        $this->assertUnauthorized('POST', '/api/users/me/bookmarks', [
+        $this->assertUnauthorized('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'title' => $expectedTitle,
@@ -223,7 +223,7 @@ class BookmarkTest extends BaseApiTestCase
             ],
         ]);
 
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -285,9 +285,9 @@ class BookmarkTest extends BaseApiTestCase
             'tags' => new ArrayCollection([$tag1, $tag2]),
         ]);
 
-        $this->assertUnauthorized('GET', "/api/users/me/bookmarks/{$bookmark->id}", [], 'Should not be able to access.');
+        $this->assertUnauthorized('GET', "/users/me/bookmarks/{$bookmark->id}", [], 'Should not be able to access.');
 
-        $this->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", [
+        $this->request('GET', "/users/me/bookmarks/{$bookmark->id}", [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
@@ -300,7 +300,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertCount(2, $json['tags']);
         $this->assertBookmarkOwnerResponse($json);
 
-        $this->assertOtherUserCannotAccess('GET', "/api/users/me/bookmarks/{$bookmark->id}");
+        $this->assertOtherUserCannotAccess('GET', "/users/me/bookmarks/{$bookmark->id}");
     }
 
     public function testEditOwnBookmark(): void
@@ -318,22 +318,22 @@ class BookmarkTest extends BaseApiTestCase
             'tags' => new ArrayCollection([$tag1, $tag2]),
         ]);
 
-        $this->assertUnauthorized('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
+        $this->assertUnauthorized('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'title' => 'Updated Title',
             ],
         ]);
 
-        $this->request('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
+        $this->request('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
                 'title' => 'Updated Title',
                 'url' => 'https://updated.com', // We can not update url
                 'tags' => [
-                    "/api/users/me/tags/{$tag2->slug}", // TODO this is wrong, /api should not be part of the IRI IMHO
-                    "/api/users/me/tags/{$tag3->slug}",
+                    "/users/me/tags/{$tag2->slug}", // TODO this is wrong full path should be better
+                    "/users/me/tags/{$tag3->slug}",
                 ],
             ],
         ]);
@@ -347,7 +347,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertCount(2, $json['tags']);
         $this->assertBookmarkOwnerResponse($json);
 
-        $this->assertOtherUserCannotAccess('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
+        $this->assertOtherUserCannotAccess('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => ['title' => 'Hacked Title'],
         ]);
@@ -359,14 +359,14 @@ class BookmarkTest extends BaseApiTestCase
 
         $bookmark = BookmarkFactory::createOne(['owner' => $user]);
 
-        $this->assertUnauthorized('DELETE', "/api/users/me/bookmarks/{$bookmark->id}");
+        $this->assertUnauthorized('DELETE', "/users/me/bookmarks/{$bookmark->id}");
 
-        $this->assertOtherUserCannotAccess('DELETE', "/api/users/me/bookmarks/{$bookmark->id}");
+        $this->assertOtherUserCannotAccess('DELETE', "/users/me/bookmarks/{$bookmark->id}");
 
-        $this->request('DELETE', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
+        $this->request('DELETE', "/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
         $this->assertResponseStatusCodeSame(204);
 
-        $this->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
+        $this->request('GET', "/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
         $this->assertResponseStatusCodeSame(404);
     }
 
@@ -383,7 +383,7 @@ class BookmarkTest extends BaseApiTestCase
         BookmarkFactory::createMany(3, ['owner' => $user, 'isPublic' => true, 'tags' => new ArrayCollection([$tag1, $tag2])]);
         BookmarkFactory::createMany(2, ['owner' => $user, 'isPublic' => false]);
 
-        $this->request('GET', "/api/profile/{$user->username}/bookmarks");
+        $this->request('GET', "/profile/{$user->username}/bookmarks");
         $this->assertResponseIsSuccessful();
 
         $json = $this->dump($this->getResponseArray());
@@ -419,7 +419,7 @@ class BookmarkTest extends BaseApiTestCase
             'tags' => new ArrayCollection([$tag1, $tag2, $tag3]),
         ]);
 
-        $this->request('GET', "/api/profile/{$user->username}/bookmarks/{$publicBookmark->id}");
+        $this->request('GET', "/profile/{$user->username}/bookmarks/{$publicBookmark->id}");
         $this->assertResponseIsSuccessful();
 
         $json = $this->dump($this->getResponseArray());
@@ -430,7 +430,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertCount(2, $json['tags']);
         $this->assertBookmarkProfileResponse($json);
 
-        $this->request('GET', "/api/profile/{$user->username}/bookmarks/{$privateBookmark->id}");
+        $this->request('GET', "/profile/{$user->username}/bookmarks/{$privateBookmark->id}");
         $this->assertResponseStatusCodeSame(404);
     }
 
@@ -470,7 +470,7 @@ class BookmarkTest extends BaseApiTestCase
             'tags' => new ArrayCollection([$tag1, $tag3, $tagPrivate]),
         ]);
 
-        $this->request('GET', "/api/profile/{$user->username}/bookmarks?tags=tag-one,tag-two");
+        $this->request('GET', "/profile/{$user->username}/bookmarks?tags=tag-one,tag-two");
         $this->assertResponseIsSuccessful();
 
         $json = $this->dump($this->getResponseArray());
@@ -482,7 +482,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertCount(3, $json['collection'][0]['tags']); // Only public tags
         $this->assertBookmarkProfileCollection($json['collection']);
 
-        $this->request('GET', "/api/profile/{$user->username}/bookmarks?tags=private-tag");
+        $this->request('GET', "/profile/{$user->username}/bookmarks?tags=private-tag");
         $this->assertResponseIsSuccessful();
 
         $json = $this->dump($this->getResponseArray());
@@ -504,7 +504,7 @@ class BookmarkTest extends BaseApiTestCase
         }
 
         // Request the first page (no after parameter)
-        $this->request('GET', '/api/users/me/bookmarks', [
+        $this->request('GET', '/users/me/bookmarks', [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
@@ -529,7 +529,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertIsString($lastBookmarkId);
 
         // Request the second page using the last ID from the first page
-        $this->request('GET', "/api/users/me/bookmarks?after={$lastBookmarkId}", [
+        $this->request('GET', "/users/me/bookmarks?after={$lastBookmarkId}", [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();
@@ -562,11 +562,11 @@ class BookmarkTest extends BaseApiTestCase
         ]);
 
         // Owner can access their own private bookmark
-        $this->request('GET', "/api/users/me/bookmarks/{$privateBookmark->id}", ['auth_bearer' => $ownerToken]);
+        $this->request('GET', "/users/me/bookmarks/{$privateBookmark->id}", ['auth_bearer' => $ownerToken]);
         $this->assertResponseIsSuccessful();
 
         // Other user cannot access owner's private bookmark
-        $this->request('GET', "/api/users/me/bookmarks/{$privateBookmark->id}", ['auth_bearer' => $otherToken]);
+        $this->request('GET', "/users/me/bookmarks/{$privateBookmark->id}", ['auth_bearer' => $otherToken]);
         $this->assertResponseStatusCodeSame(404, 'Other user should not be able to access private bookmark');
     }
 
@@ -582,7 +582,7 @@ class BookmarkTest extends BaseApiTestCase
         ]);
 
         // Owner can edit their own bookmark
-        $this->request('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
+        $this->request('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $ownerToken,
             'json' => ['title' => 'Updated By Owner'],
@@ -590,7 +590,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertResponseIsSuccessful();
 
         // Other user cannot edit owner's bookmark
-        $this->request('PATCH', "/api/users/me/bookmarks/{$bookmark->id}", [
+        $this->request('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $otherToken,
             'json' => ['title' => 'Hacked Bookmark'],
@@ -598,7 +598,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertResponseStatusCodeSame(404, 'Other user should not be able to edit bookmark');
 
         // Verify bookmark was not modified by other user
-        $this->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $ownerToken]);
+        $this->request('GET', "/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $ownerToken]);
         $json = $this->getResponseArray();
         $this->assertEquals('Updated By Owner', $json['title'], 'Bookmark should not be modified by other user');
     }
@@ -615,11 +615,11 @@ class BookmarkTest extends BaseApiTestCase
         ]);
 
         // Other user cannot delete owner's bookmark
-        $this->request('DELETE', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $otherToken]);
+        $this->request('DELETE', "/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $otherToken]);
         $this->assertResponseStatusCodeSame(404, 'Other user should not be able to delete bookmark');
 
         // Verify bookmark still exists
-        $this->request('GET', "/api/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $ownerToken]);
+        $this->request('GET', "/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $ownerToken]);
         $this->assertResponseIsSuccessful();
         $json = $this->getResponseArray();
         $this->assertEquals('Bookmark To Delete', $json['title'], 'Bookmark should still exist after failed deletion attempt');
@@ -630,7 +630,7 @@ class BookmarkTest extends BaseApiTestCase
     {
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
 
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -674,7 +674,7 @@ class BookmarkTest extends BaseApiTestCase
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
 
         // Create first bookmark (Version 1)
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -686,7 +686,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertResponseIsSuccessful();
 
         // Create second bookmark (Version 2) - this will mark Version 1 as outdated
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -697,7 +697,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertResponseIsSuccessful();
 
         // Create third bookmark (Version 3) - this will mark Version 2 as outdated
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -708,7 +708,7 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertResponseIsSuccessful();
 
         // Create fourth bookmark (Version 4) - this will mark Version 3 as outdated
-        $this->request('POST', '/api/users/me/bookmarks', [
+        $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -719,10 +719,10 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertResponseIsSuccessful();
         $bookmark4 = $this->getResponseArray();
 
-        $this->assertUnauthorized('GET', "/api/users/me/bookmarks/{$bookmark4['id']}/history");
+        $this->assertUnauthorized('GET', "/users/me/bookmarks/{$bookmark4['id']}/history");
 
         // Call history endpoint on the latest bookmark (Version 4)
-        $this->request('GET', "/api/users/me/bookmarks/{$bookmark4['id']}/history", [
+        $this->request('GET', "/users/me/bookmarks/{$bookmark4['id']}/history", [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseIsSuccessful();

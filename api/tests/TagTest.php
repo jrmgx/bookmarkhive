@@ -13,9 +13,9 @@ class TagTest extends BaseApiTestCase
 
         TagFactory::createMany(3, ['owner' => $user]);
 
-        $this->assertUnauthorized('GET', '/api/users/me/tags');
+        $this->assertUnauthorized('GET', '/users/me/tags');
 
-        $this->request('GET', '/api/users/me/tags', ['auth_bearer' => $token]);
+        $this->request('GET', '/users/me/tags', ['auth_bearer' => $token]);
         $this->assertResponseIsSuccessful();
 
         $json = $this->getResponseArray();
@@ -28,14 +28,14 @@ class TagTest extends BaseApiTestCase
     {
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
 
-        $this->assertUnauthorized('POST', '/api/users/me/tags', [
+        $this->assertUnauthorized('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'name' => 'Test Tag',
             ],
         ]);
 
-        $this->request('POST', '/api/users/me/tags', [
+        $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -50,7 +50,7 @@ class TagTest extends BaseApiTestCase
         $this->assertEquals('test-tag', $json['slug']);
         $this->assertTagOwnerResponse($json);
 
-        $this->request('POST', '/api/users/me/tags', [
+        $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -71,7 +71,7 @@ class TagTest extends BaseApiTestCase
     {
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
 
-        $this->request('POST', '/api/users/me/tags', [
+        $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -82,7 +82,7 @@ class TagTest extends BaseApiTestCase
         $firstJson = $this->dump($this->getResponseArray());
         $firstTagSlug = $firstJson['slug'];
 
-        $this->request('POST', '/api/users/me/tags', [
+        $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -95,7 +95,7 @@ class TagTest extends BaseApiTestCase
 
         $this->assertNotEquals($firstTagSlug, $secondTagSlug);
 
-        $this->request('POST', '/api/users/me/tags', [
+        $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -125,7 +125,7 @@ class TagTest extends BaseApiTestCase
         }
 
         // Attempt to create the 1001st tag
-        $this->request('POST', '/api/users/me/tags', [
+        $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -148,9 +148,9 @@ class TagTest extends BaseApiTestCase
             'name' => 'My Tag',
         ]);
 
-        $this->assertUnauthorized('GET', "/api/users/me/tags/{$tag->slug}", [], 'Should not be able to access.');
+        $this->assertUnauthorized('GET', "/users/me/tags/{$tag->slug}", [], 'Should not be able to access.');
 
-        $this->request('GET', "/api/users/me/tags/{$tag->slug}", ['auth_bearer' => $token]);
+        $this->request('GET', "/users/me/tags/{$tag->slug}", ['auth_bearer' => $token]);
         $this->assertResponseIsSuccessful();
 
         $json = $this->getResponseArray();
@@ -159,7 +159,7 @@ class TagTest extends BaseApiTestCase
         $this->assertEquals('my-tag', $json['slug']);
         $this->assertTagOwnerResponse($json);
 
-        $this->assertOtherUserCannotAccess('GET', "/api/users/me/tags/{$tag->slug}");
+        $this->assertOtherUserCannotAccess('GET', "/users/me/tags/{$tag->slug}");
     }
 
     public function testEditOwnTag(): void
@@ -171,14 +171,14 @@ class TagTest extends BaseApiTestCase
             'name' => 'Original Title',
         ]);
 
-        $this->assertUnauthorized('PATCH', "/api/users/me/tags/{$tag->slug}", [
+        $this->assertUnauthorized('PATCH', "/users/me/tags/{$tag->slug}", [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'name' => 'Updated Title',
             ],
         ]);
 
-        $this->request('PATCH', "/api/users/me/tags/{$tag->slug}", [
+        $this->request('PATCH', "/users/me/tags/{$tag->slug}", [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -193,7 +193,7 @@ class TagTest extends BaseApiTestCase
         $this->assertEquals('updated-title', $json['slug']);
         $this->assertTagOwnerResponse($json);
 
-        $this->assertOtherUserCannotAccess('PATCH', "/api/users/me/tags/{$tag->slug}", [
+        $this->assertOtherUserCannotAccess('PATCH', "/users/me/tags/{$tag->slug}", [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => ['name' => 'Hacked Title'],
         ]);
@@ -205,14 +205,14 @@ class TagTest extends BaseApiTestCase
 
         $tag = TagFactory::createOne(['owner' => $user]);
 
-        $this->assertUnauthorized('DELETE', "/api/users/me/tags/{$tag->slug}");
+        $this->assertUnauthorized('DELETE', "/users/me/tags/{$tag->slug}");
 
-        $this->assertOtherUserCannotAccess('DELETE', "/api/users/me/tags/{$tag->slug}");
+        $this->assertOtherUserCannotAccess('DELETE', "/users/me/tags/{$tag->slug}");
 
-        $this->request('DELETE', "/api/users/me/tags/{$tag->slug}", ['auth_bearer' => $token]);
+        $this->request('DELETE', "/users/me/tags/{$tag->slug}", ['auth_bearer' => $token]);
         $this->assertResponseStatusCodeSame(204);
 
-        $this->request('GET', "/api/users/me/tags/{$tag->slug}", ['auth_bearer' => $token]);
+        $this->request('GET', "/users/me/tags/{$tag->slug}", ['auth_bearer' => $token]);
         $this->assertResponseStatusCodeSame(404);
     }
 
@@ -226,7 +226,7 @@ class TagTest extends BaseApiTestCase
         TagFactory::createMany(3, ['owner' => $user, 'isPublic' => true]);
         TagFactory::createMany(2, ['owner' => $user, 'isPublic' => false]);
 
-        $this->request('GET', "/api/profile/{$user->username}/tags");
+        $this->request('GET', "/profile/{$user->username}/tags");
         $this->assertResponseIsSuccessful();
 
         $json = $this->getResponseArray();
@@ -254,7 +254,7 @@ class TagTest extends BaseApiTestCase
             'isPublic' => false,
         ]);
 
-        $this->request('GET', "/api/profile/{$user->username}/tags/{$publicTag->slug}");
+        $this->request('GET', "/profile/{$user->username}/tags/{$publicTag->slug}");
         $this->assertResponseIsSuccessful();
 
         $json = $this->getResponseArray();
@@ -263,7 +263,7 @@ class TagTest extends BaseApiTestCase
         $this->assertEquals('public-tag', $json['slug']);
         $this->assertTagProfileResponse($json);
 
-        $this->request('GET', "/api/profile/{$user->username}/tags/{$privateTag->slug}");
+        $this->request('GET', "/profile/{$user->username}/tags/{$privateTag->slug}");
         $this->assertResponseStatusCodeSame(404);
     }
 
@@ -271,7 +271,7 @@ class TagTest extends BaseApiTestCase
     {
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
 
-        $this->request('POST', '/api/users/me/tags', [
+        $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -303,7 +303,7 @@ class TagTest extends BaseApiTestCase
             'meta' => [],
         ]);
 
-        $this->request('PATCH', "/api/users/me/tags/{$tag->slug}", [
+        $this->request('PATCH', "/users/me/tags/{$tag->slug}", [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -338,7 +338,7 @@ class TagTest extends BaseApiTestCase
             ],
         ]);
 
-        $this->request('PATCH', "/api/users/me/tags/{$tag->slug}", [
+        $this->request('PATCH', "/users/me/tags/{$tag->slug}", [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -376,11 +376,11 @@ class TagTest extends BaseApiTestCase
         ]);
 
         // Owner can access their own private tag
-        $this->request('GET', "/api/users/me/tags/{$privateTag->slug}", ['auth_bearer' => $ownerToken]);
+        $this->request('GET', "/users/me/tags/{$privateTag->slug}", ['auth_bearer' => $ownerToken]);
         $this->assertResponseIsSuccessful();
 
         // Other user cannot access owner's private tag
-        $this->request('GET', "/api/users/me/tags/{$privateTag->slug}", ['auth_bearer' => $otherToken]);
+        $this->request('GET', "/users/me/tags/{$privateTag->slug}", ['auth_bearer' => $otherToken]);
         $this->assertResponseStatusCodeSame(404, 'Other user should not be able to access private tag');
     }
 
@@ -395,7 +395,7 @@ class TagTest extends BaseApiTestCase
         ]);
 
         // Owner can edit their own tag
-        $this->request('PATCH', "/api/users/me/tags/{$tag->slug}", [
+        $this->request('PATCH', "/users/me/tags/{$tag->slug}", [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $ownerToken,
             'json' => ['name' => 'Updated By Owner'],
@@ -405,7 +405,7 @@ class TagTest extends BaseApiTestCase
         $slug = $json['slug'];
 
         // Other user cannot edit owner's tag
-        $this->request('PATCH', "/api/users/me/tags/{$slug}", [
+        $this->request('PATCH', "/users/me/tags/{$slug}", [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $otherToken,
             'json' => ['name' => 'Hacked Tag'],
@@ -413,7 +413,7 @@ class TagTest extends BaseApiTestCase
         $this->assertResponseStatusCodeSame(404, 'Other user should not be able to edit tag');
 
         // Verify tag was not modified by other user
-        $this->request('GET', "/api/users/me/tags/{$slug}", ['auth_bearer' => $ownerToken]);
+        $this->request('GET', "/users/me/tags/{$slug}", ['auth_bearer' => $ownerToken]);
         $json = $this->dump($this->getResponseArray());
         $this->assertEquals('Updated By Owner', $json['name'], 'Tag should not be modified by other user');
     }
@@ -429,11 +429,11 @@ class TagTest extends BaseApiTestCase
         ]);
 
         // Other user cannot delete owner's tag
-        $this->request('DELETE', "/api/users/me/tags/{$tag->slug}", ['auth_bearer' => $otherToken]);
+        $this->request('DELETE', "/users/me/tags/{$tag->slug}", ['auth_bearer' => $otherToken]);
         $this->assertResponseStatusCodeSame(404, 'Other user should not be able to delete tag');
 
         // Verify tag still exists
-        $this->request('GET', "/api/users/me/tags/{$tag->slug}", ['auth_bearer' => $ownerToken]);
+        $this->request('GET', "/users/me/tags/{$tag->slug}", ['auth_bearer' => $ownerToken]);
         $this->assertResponseIsSuccessful();
         $json = $this->getResponseArray();
         $this->assertEquals('Tag To Delete', $json['name'], 'Tag should still exist after failed deletion attempt');

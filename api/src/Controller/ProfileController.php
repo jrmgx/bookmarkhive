@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route(path: '/api/profile/{username}', name: RouteType::Profile->value)]
+#[Route(path: '/profile/{username}', name: RouteType::Profile->value)]
 final class ProfileController extends AbstractController
 {
     public function __construct(

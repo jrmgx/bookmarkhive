@@ -25,7 +25,7 @@ class AuthenticationTest extends BaseApiTestCase
         $manager->flush();
 
         // retrieve a token
-        $this->request('POST', '/api/auth', [
+        $this->request('POST', '/auth', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => 'test@example.com',
@@ -38,11 +38,11 @@ class AuthenticationTest extends BaseApiTestCase
         $this->assertArrayHasKey('token', $json);
 
         // test not authorized
-        $this->request('GET', '/api/users/me/bookmarks');
+        $this->request('GET', '/users/me/bookmarks');
         $this->assertResponseStatusCodeSame(401);
 
         // test authorized
-        $this->request('GET', '/api/users/me/bookmarks', [
+        $this->request('GET', '/users/me/bookmarks', [
             'auth_bearer' => $json['token'],
         ]);
         $this->assertResponseIsSuccessful();

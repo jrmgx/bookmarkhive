@@ -1410,22 +1410,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         read_only?: bool, // Default: false
  *     }>,
  * }
- * @psalm-type TwigComponentConfig = array{
- *     defaults?: array<string, string|array{ // Default: ["__deprecated__use_old_naming_behavior"]
- *         template_directory?: scalar|null, // Default: "components"
- *         name_prefix?: scalar|null, // Default: ""
- *     }>,
- *     anonymous_template_directory?: scalar|null, // Defaults to `components`
- *     profiler?: bool, // Enables the profiler for Twig Component (in debug mode) // Default: "%kernel.debug%"
- *     controllers_json?: scalar|null, // Deprecated: The "twig_component.controllers_json" config option is deprecated, and will be removed in 3.0. // Default: null
- * }
- * @psalm-type StimulusConfig = array{
- *     controller_paths?: list<scalar|null>,
- *     controllers_json?: scalar|null, // Default: "%kernel.project_dir%/assets/controllers.json"
- * }
- * @psalm-type LiveComponentConfig = array{
- *     secret?: scalar|null, // The secret used to compute fingerprints and checksums // Default: "%kernel.secret%"
- * }
  * @psalm-type TwigExtraConfig = array{
  *     cache?: bool|array{
  *         enabled?: bool, // Default: false
@@ -1472,16 +1456,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         },
  *         ...<mixed>
  *     },
- * }
- * @psalm-type WebpackEncoreConfig = array{
- *     output_path: scalar|null, // The path where Encore is building the assets - i.e. Encore.setOutputPath()
- *     crossorigin?: false|"anonymous"|"use-credentials", // crossorigin value when Encore.enableIntegrityHashes() is used, can be false (default), anonymous or use-credentials // Default: false
- *     preload?: bool, // preload all rendered script and link tags automatically via the http2 Link header. // Default: false
- *     cache?: bool, // Enable caching of the entry point file(s) // Default: false
- *     strict_mode?: bool, // Throw an exception if the entrypoints.json file is missing or an entry is missing from the data // Default: true
- *     builds?: array<string, scalar|null>,
- *     script_attributes?: array<string, scalar|null>,
- *     link_attributes?: array<string, scalar|null>,
  * }
  * @psalm-type WebProfilerConfig = array{
  *     toolbar?: bool|array{ // Profiler toolbar configuration
@@ -1737,11 +1711,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *     doctrine_migrations?: DoctrineMigrationsConfig,
  *     nelmio_cors?: NelmioCorsConfig,
  *     flysystem?: FlysystemConfig,
- *     twig_component?: TwigComponentConfig,
- *     stimulus?: StimulusConfig,
- *     live_component?: LiveComponentConfig,
  *     twig_extra?: TwigExtraConfig,
- *     webpack_encore?: WebpackEncoreConfig,
  *     monolog?: MonologConfig,
  *     lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *     "when@dev"?: array{
@@ -1760,11 +1730,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         fidry_alice_data_fixtures?: FidryAliceDataFixturesConfig,
  *         hautelook_alice?: HautelookAliceConfig,
  *         flysystem?: FlysystemConfig,
- *         twig_component?: TwigComponentConfig,
- *         stimulus?: StimulusConfig,
- *         live_component?: LiveComponentConfig,
  *         twig_extra?: TwigExtraConfig,
- *         webpack_encore?: WebpackEncoreConfig,
  *         web_profiler?: WebProfilerConfig,
  *         monolog?: MonologConfig,
  *         debug?: DebugConfig,
@@ -1781,11 +1747,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         doctrine_migrations?: DoctrineMigrationsConfig,
  *         nelmio_cors?: NelmioCorsConfig,
  *         flysystem?: FlysystemConfig,
- *         twig_component?: TwigComponentConfig,
- *         stimulus?: StimulusConfig,
- *         live_component?: LiveComponentConfig,
  *         twig_extra?: TwigExtraConfig,
- *         webpack_encore?: WebpackEncoreConfig,
  *         monolog?: MonologConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *     },
@@ -1805,11 +1767,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         fidry_alice_data_fixtures?: FidryAliceDataFixturesConfig,
  *         hautelook_alice?: HautelookAliceConfig,
  *         flysystem?: FlysystemConfig,
- *         twig_component?: TwigComponentConfig,
- *         stimulus?: StimulusConfig,
- *         live_component?: LiveComponentConfig,
  *         twig_extra?: TwigExtraConfig,
- *         webpack_encore?: WebpackEncoreConfig,
  *         web_profiler?: WebProfilerConfig,
  *         monolog?: MonologConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,

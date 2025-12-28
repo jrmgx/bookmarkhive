@@ -15,27 +15,27 @@ security:
             pattern: ^/_(profiler|wdt)
             security: false
         login:
-            pattern: ^/api/auth
+            pattern: ^/auth
             stateless: true
             json_login:
                 username_path: email
-                check_path: /api/auth
+                check_path: /auth
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
         api:
-            pattern: ^/api/
+            pattern: ^/
             stateless: true
             provider: users
             jwt: ~
 
     access_control:
-        - { path: ^/api/auth$, roles: PUBLIC_ACCESS } # Allows login
-        - { path: ^/api$, roles: PUBLIC_ACCESS } # Allows accessing API documentation
-        - { path: ^/api/docs$, roles: PUBLIC_ACCESS } # Allows accessing API documentation
-        - { path: ^/api/account$, roles: PUBLIC_ACCESS, methods: ['POST'] } # Allows create user
-        - { path: ^/api/profile, roles: PUBLIC_ACCESS } # Public side
-        - { path: ^/api/users/me, roles: IS_AUTHENTICATED_FULLY } # Own user account
-        - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY } # Everything else
+        - { path: ^/auth$, roles: PUBLIC_ACCESS } # Allows login
+        - { path: ^/$, roles: PUBLIC_ACCESS } # Homepage
+        - { path: ^/docs$, roles: PUBLIC_ACCESS } # API documentation
+        - { path: ^/account$, roles: PUBLIC_ACCESS, methods: ['POST'] } # Allows create user
+        - { path: ^/profile, roles: PUBLIC_ACCESS } # Public side
+        - { path: ^/users/me, roles: IS_AUTHENTICATED_FULLY } # Own user account
+        - { path: ^/, roles: IS_AUTHENTICATED_FULLY } # Everything else
 
 when@test:
     security:

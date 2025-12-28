@@ -19,7 +19,7 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
-#[Route(path: '/api/users/me/files', name: RouteType::MeFileObjects->value)]
+#[Route(path: '/users/me/files', name: RouteType::MeFileObjects->value)]
 final class MeFileObjectController extends AbstractController
 {
     public function __construct(

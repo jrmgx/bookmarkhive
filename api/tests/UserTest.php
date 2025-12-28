@@ -12,9 +12,9 @@ class UserTest extends BaseApiTestCase
     {
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'test', 'test');
 
-        $this->assertUnauthorized('GET', '/api/users/me');
+        $this->assertUnauthorized('GET', '/users/me');
 
-        $this->request('GET', '/api/users/me', ['auth_bearer' => $token]);
+        $this->request('GET', '/users/me', ['auth_bearer' => $token]);
         $this->assertResponseIsSuccessful();
 
         $json = $this->getResponseArray();
@@ -28,7 +28,7 @@ class UserTest extends BaseApiTestCase
     {
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'test', 'test');
 
-        $this->request('PATCH', '/api/users/me', [
+        $this->request('PATCH', '/users/me', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -43,7 +43,7 @@ class UserTest extends BaseApiTestCase
         $this->assertEquals('test@example.com', $json['email']);
         $this->assertUserOwnerResponse($json);
 
-        $this->request('PATCH', '/api/users/me', [
+        $this->request('PATCH', '/users/me', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -61,14 +61,14 @@ class UserTest extends BaseApiTestCase
         [, $oldToken] = $this->createAuthenticatedUser('test@example.com', 'test', 'oldpassword');
 
         // Verify user can see his profile with the original token
-        $this->request('GET', '/api/users/me', ['auth_bearer' => $oldToken]);
+        $this->request('GET', '/users/me', ['auth_bearer' => $oldToken]);
         $this->assertResponseIsSuccessful();
         $json = $this->getResponseArray();
         $this->assertEquals('test@example.com', $json['email']);
         $this->assertEquals('test', $json['username']);
 
         // Change password
-        $this->request('PATCH', '/api/users/me', [
+        $this->request('PATCH', '/users/me', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $oldToken,
             'json' => [
@@ -78,7 +78,7 @@ class UserTest extends BaseApiTestCase
         $this->assertResponseIsSuccessful();
 
         // Try to access profile with old token - should fail
-        $this->request('GET', '/api/users/me', ['auth_bearer' => $oldToken]);
+        $this->request('GET', '/users/me', ['auth_bearer' => $oldToken]);
         $this->assertResponseStatusCodeSame(401, 'Old JWT token should be invalid after password change.');
 
         // Re-login with new password to get a new token
@@ -86,7 +86,7 @@ class UserTest extends BaseApiTestCase
         $this->assertNotEmpty($newToken, 'Should be able to login with new password.');
 
         // Verify user can see his profile with the new token
-        $this->request('GET', '/api/users/me', ['auth_bearer' => $newToken]);
+        $this->request('GET', '/users/me', ['auth_bearer' => $newToken]);
         $this->assertResponseIsSuccessful();
         $json = $this->getResponseArray();
         $this->assertEquals('test@example.com', $json['email']);
@@ -98,9 +98,9 @@ class UserTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'test', 'test');
 
-        $this->assertUnauthorized('DELETE', '/api/users/me', [], 'Deletion authorized but it should not.');
+        $this->assertUnauthorized('DELETE', '/users/me', [], 'Deletion authorized but it should not.');
 
-        $this->request('DELETE', '/api/users/me', [
+        $this->request('DELETE', '/users/me', [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseStatusCodeSame(204);
@@ -111,7 +111,7 @@ class UserTest extends BaseApiTestCase
         $this->assertNull($deletedUser, 'User should be deleted from database.');
 
         // Verify user is deleted (API check)
-        $this->request('GET', '/api/users/me', [
+        $this->request('GET', '/users/me', [
             'auth_bearer' => $token,
         ]);
         $this->assertResponseStatusCodeSame(404, 'User is deleted but still have access.');
@@ -134,25 +134,25 @@ class UserTest extends BaseApiTestCase
         ]);
 
         // Test accessing public profile via username (no JWT)
-        $this->request('GET', '/api/profile/publicuser');
+        $this->request('GET', '/profile/publicuser');
         $this->assertResponseIsSuccessful();
         $json = $this->getResponseArray();
         $this->assertEquals('publicuser', $json['username']);
         $this->assertUserProfileResponse($json);
 
         // Test accessing private profile (should fail)
-        $this->request('GET', '/api/profile/privateuser');
+        $this->request('GET', '/profile/privateuser');
         $this->assertResponseStatusCodeSame(404, 'Private user profile is accessible (no JWT).');
 
         // Test accessing private profile (should fail)
-        $this->request('GET', '/api/profile/privateuser', ['auth_bearer' => $token]);
+        $this->request('GET', '/profile/privateuser', ['auth_bearer' => $token]);
         $this->assertResponseStatusCodeSame(404, 'Private user profile is accessible (with other JWT).');
     }
 
     public function testRegisterNewAccount(): void
     {
         $uniqUsername = uniqid('user_');
-        $this->request('POST', '/api/account', [
+        $this->request('POST', '/account', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => $uniqUsername . '@example.com',
@@ -173,7 +173,7 @@ class UserTest extends BaseApiTestCase
         $this->assertNotEmpty($token);
 
         // Test registration with duplicate email (should fail)
-        $this->request('POST', '/api/account', [
+        $this->request('POST', '/account', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => $uniqUsername . '@example.com',
@@ -184,7 +184,7 @@ class UserTest extends BaseApiTestCase
         $this->assertResponseStatusCodeSame(422);
 
         // Test registration with duplicate username (should fail)
-        $this->request('POST', '/api/account', [
+        $this->request('POST', '/account', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => $uniqUsername . '_other@example.com',
@@ -196,7 +196,7 @@ class UserTest extends BaseApiTestCase
 
         // Test registration with roles specified (should ignore roles)
         $uniqUsernameWithRoles = uniqid('user_');
-        $this->request('POST', '/api/account', [
+        $this->request('POST', '/account', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => $uniqUsernameWithRoles . '@example.com',
@@ -230,7 +230,7 @@ class UserTest extends BaseApiTestCase
         $baseEmail = uniqid('test_') . '@example.com';
 
         // Test registration with username too short (< 3 chars)
-        $this->request('POST', '/api/account', [
+        $this->request('POST', '/account', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => $baseEmail,
@@ -241,7 +241,7 @@ class UserTest extends BaseApiTestCase
         $this->assertResponseStatusCodeSame(422, 'Username with 2 characters should be rejected.');
 
         // Test registration with username too long (> 32 chars)
-        $this->request('POST', '/api/account', [
+        $this->request('POST', '/account', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => uniqid('test_') . '@example.com',
@@ -252,7 +252,7 @@ class UserTest extends BaseApiTestCase
         $this->assertResponseStatusCodeSame(422, 'Username with 33 characters should be rejected.');
 
         // Test registration with username at minimum length (3 chars) - should succeed
-        $this->request('POST', '/api/account', [
+        $this->request('POST', '/account', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => uniqid('test_') . '@example.com',
@@ -268,7 +268,7 @@ class UserTest extends BaseApiTestCase
         // Test updating profile with username too short
         [, $token] = $this->createAuthenticatedUser(uniqid('test_') . '@example.com', 'testuser', 'test');
 
-        $this->request('PATCH', '/api/users/me', [
+        $this->request('PATCH', '/users/me', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -278,7 +278,7 @@ class UserTest extends BaseApiTestCase
         $this->assertResponseStatusCodeSame(422, 'Updating username to 2 characters should be rejected.');
 
         // Test updating profile with username too long
-        $this->request('PATCH', '/api/users/me', [
+        $this->request('PATCH', '/users/me', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -291,7 +291,7 @@ class UserTest extends BaseApiTestCase
     public function testCreateUserWithMeta(): void
     {
         $uniqUsername = uniqid('user_');
-        $this->request('POST', '/api/account', [
+        $this->request('POST', '/account', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
                 'email' => $uniqUsername . '@example.com',
@@ -319,7 +319,7 @@ class UserTest extends BaseApiTestCase
     {
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
 
-        $this->request('PATCH', '/api/users/me', [
+        $this->request('PATCH', '/users/me', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
@@ -353,7 +353,7 @@ class UserTest extends BaseApiTestCase
         $manager = $this->container->get('doctrine')->getManager();
         $manager->flush();
 
-        $this->request('PATCH', '/api/users/me', [
+        $this->request('PATCH', '/users/me', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [

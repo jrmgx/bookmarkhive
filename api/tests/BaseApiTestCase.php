@@ -57,7 +57,7 @@ abstract class BaseApiTestCase extends WebTestCase
 
     protected function getToken(string $email, string $password): string
     {
-        $this->client->request('POST', '/api/auth', [], [], [
+        $this->client->request('POST', '/auth', [], [], [
             'CONTENT_TYPE' => 'application/json',
         ], json_encode([
             'email' => $email,

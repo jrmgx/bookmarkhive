@@ -19,7 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route(path: '/api/users/me', name: RouteType::Me->value)]
+#[Route(path: '/users/me', name: RouteType::Me->value)]
 final class MeController extends AbstractController
 {
     public function __construct(

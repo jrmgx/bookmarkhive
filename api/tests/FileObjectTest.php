@@ -11,7 +11,7 @@ class FileObjectTest extends BaseApiTestCase
         [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
         $file = new UploadedFile(__DIR__ . '/data/image_01.jpg', 'image_01.jpg');
 
-        $this->assertUnauthorized('POST', '/api/users/me/files', [
+        $this->assertUnauthorized('POST', '/users/me/files', [
             'headers' => ['Content-Type' => 'multipart/form-data'],
             'extra' => [
                 'files' => [
@@ -21,7 +21,7 @@ class FileObjectTest extends BaseApiTestCase
         ]);
 
         $this->client->enableProfiler();
-        $this->request('POST', '/api/users/me/files', [
+        $this->request('POST', '/users/me/files', [
             'headers' => ['Content-Type' => 'multipart/form-data'],
             'auth_bearer' => $token,
             'extra' => [

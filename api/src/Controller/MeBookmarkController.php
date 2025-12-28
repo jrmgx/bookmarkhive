@@ -18,7 +18,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route(path: '/api/users/me/bookmarks', name: RouteType::MeBookmarks->value)]
+#[Route(path: '/users/me/bookmarks', name: RouteType::MeBookmarks->value)]
 final class MeBookmarkController extends BookmarkController
 {
     #[Route(path: '', name: RouteAction::Collection->value, methods: ['GET'])]

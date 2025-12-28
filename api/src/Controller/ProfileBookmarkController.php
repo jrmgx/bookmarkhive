@@ -11,7 +11,7 @@ use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route(path: '/api/profile/{username}/bookmarks', name: RouteType::ProfileBookmarks->value)]
+#[Route(path: '/profile/{username}/bookmarks', name: RouteType::ProfileBookmarks->value)]
 final class ProfileBookmarkController extends BookmarkController
 {
     #[Route(path: '', name: RouteAction::Collection->value, methods: ['GET'])]

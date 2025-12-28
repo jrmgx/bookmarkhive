@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route(path: '/api/profile/{username}/tags', name: RouteType::ProfileTags->value)]
+#[Route(path: '/profile/{username}/tags', name: RouteType::ProfileTags->value)]
 final class ProfileTagController extends TagController
 {
     #[Route(path: '', name: RouteAction::Collection->value, methods: ['GET'])]

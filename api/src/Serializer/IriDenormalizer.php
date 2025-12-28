@@ -13,8 +13,8 @@ use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
 readonly class IriDenormalizer implements DenormalizerInterface
 {
-    private const string PATH_TAGS = '/api/users/me/tags/';
-    private const string PATH_FILE_OBJECTS = '/api/users/me/files/';
+    private const string PATH_TAGS = '`/users/me/tags/([a-z0-9-]+)`';
+    private const string PATH_FILE_OBJECTS = '`/users/me/files/([a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})`';
 
     public function __construct(
         private Security $security,
@@ -29,7 +29,12 @@ readonly class IriDenormalizer implements DenormalizerInterface
         $user = $this->security->getUser() ?? throw new \LogicException('No user logged.');
 
         if (Tag::class === $type) {
-            $slug = substr($data, \strlen(self::PATH_TAGS));
+            $path = (string) parse_url($data, \PHP_URL_PATH);
+            $matches = [];
+            if (false === preg_match(self::PATH_TAGS, $path, $matches) || !isset($matches[1])) {
+                throw new UnprocessableEntityHttpException('This Tag does not exist.');
+            }
+            $slug = $matches[1];
 
             return $this->tagRepository->findOneByOwnerAndSlug($user, $slug, onlyPublic: false)
                 ->getQuery()->getOneOrNullResult()
@@ -38,7 +43,12 @@ readonly class IriDenormalizer implements DenormalizerInterface
         }
 
         if (FileObject::class === $type) {
-            $id = substr($data, \strlen(self::PATH_FILE_OBJECTS));
+            $path = (string) parse_url($data, \PHP_URL_PATH);
+            $matches = [];
+            if (false === preg_match(self::PATH_FILE_OBJECTS, $path, $matches) || !isset($matches[1])) {
+                throw new UnprocessableEntityHttpException('This FileObject does not exist.');
+            }
+            $id = $matches[1];
 
             return $this->fileObjectRepository->findOneByOwnerAndId($user, $id)
                 ->getQuery()->getOneOrNullResult()
@@ -58,7 +68,7 @@ readonly class IriDenormalizer implements DenormalizerInterface
         return
             (Tag::class === $type || FileObject::class === $type)
             && \is_string($data)
-            && (str_starts_with($data, self::PATH_TAGS) || str_starts_with($data, self::PATH_FILE_OBJECTS));
+            && (false !== preg_match(self::PATH_TAGS, $data) || false !== preg_match(self::PATH_FILE_OBJECTS, $data));
     }
 
     /**

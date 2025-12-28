@@ -29,31 +29,31 @@ readonly class IriNormalizer implements NormalizerInterface
 
         if ($this->routeContext->getType()->isMe()) {
             $iri = match ($data::class) {
-                User::class => $this->router->generate(RouteType::Me->value . RouteAction::Get->value),
+                User::class => $this->router->generate(RouteType::Me->value . RouteAction::Get->value, [], UrlGeneratorInterface::ABSOLUTE_URL),
                 Bookmark::class => $this->router->generate(RouteType::MeBookmarks->value . RouteAction::Get->value, [
                     'id' => $data->id,
-                ]),
+                ], UrlGeneratorInterface::ABSOLUTE_URL),
                 Tag::class => $this->router->generate(RouteType::MeTags->value . RouteAction::Get->value, [
                     'slug' => $data->slug,
-                ]),
+                ], UrlGeneratorInterface::ABSOLUTE_URL),
                 FileObject::class => $this->router->generate(RouteType::MeFileObjects->value . RouteAction::Get->value, [
                     'id' => $data->id,
-                ]),
+                ], UrlGeneratorInterface::ABSOLUTE_URL),
                 default => null,
             };
         } else {
             $iri = match ($data::class) {
                 User::class => $this->router->generate(RouteType::Profile->value . RouteAction::Get->value, [
                     'username' => $data->username,
-                ]),
+                ], UrlGeneratorInterface::ABSOLUTE_URL),
                 Bookmark::class => $this->router->generate(RouteType::ProfileBookmarks->value . RouteAction::Get->value, [
                     'username' => $data->owner->username,
                     'id' => $data->id,
-                ]),
+                ], UrlGeneratorInterface::ABSOLUTE_URL),
                 Tag::class => $this->router->generate(RouteType::ProfileTags->value . RouteAction::Get->value, [
                     'username' => $data->owner->username,
                     'slug' => $data->slug,
-                ]),
+                ], UrlGeneratorInterface::ABSOLUTE_URL),
                 default => null,
             };
         }

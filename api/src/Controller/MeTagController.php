@@ -18,7 +18,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route(path: '/api/users/me/tags', name: RouteType::MeTags->value)]
+#[Route(path: '/users/me/tags', name: RouteType::MeTags->value)]
 final class MeTagController extends TagController
 {
     #[Route(path: '', name: RouteAction::Collection->value, methods: ['GET'])]
