@@ -33,6 +33,10 @@ export function createLocalStorageAdapter(defaultBaseUrl?: string): StorageAdapt
       }
       return defaultBaseUrl || null;
     },
+
+    async setBaseUrl(baseUrl: string): Promise<void> {
+      localStorage.setItem(BASE_URL_KEY, baseUrl);
+    },
   };
 }
 

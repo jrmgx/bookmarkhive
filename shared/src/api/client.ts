@@ -25,7 +25,7 @@ import { transformTagFromApi, transformTagToApi } from '../tag/transform';
  */
 export interface ApiClient {
   // Authentication
-  login(email: string, password: string): Promise<string>;
+  login(username: string, password: string): Promise<string>;
   register(userData: UserCreate): Promise<UserOwner>;
 
   // Bookmarks
@@ -117,8 +117,8 @@ export function createApiClient(config: ApiConfig): ApiClient {
      * Authenticates the user and stores the token
      * Unified from extension's authenticate() and client's login()
      */
-    async login(email: string, password: string): Promise<string> {
-      const authRequest: AuthRequest = { email, password };
+    async login(username: string, password: string): Promise<string> {
+      const authRequest: AuthRequest = { username, password };
 
       const response = await fetch(`${baseUrl}/auth`, {
         method: 'POST',

@@ -5,17 +5,31 @@
 
 import { createApiClient, createLocalStorageAdapter, getCursorFromUrl, type ApiClient, type BookmarksResponse, type Bookmark, type Tag, type UserOwner } from '@shared';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-if (!BASE_URL) {
-  throw new Error('VITE_API_BASE_URL environment variable is not set. Please check your .env file.');
-}
+const storageAdapter = createLocalStorageAdapter(import.meta.env.VITE_API_BASE_URL || undefined);
 
-// Create API client instance with localStorage adapter
-const apiClient: ApiClient = createApiClient({
-  baseUrl: BASE_URL,
-  storage: createLocalStorageAdapter(),
-  enableCache: true,
-});
+// Cache for the API client instance
+let apiClientCache: ApiClient | null = null;
+let apiClientBaseUrl: string | null = null;
+
+// Get API client, creating a new one if base URL changed
+async function getOrCreateApiClient(): Promise<ApiClient> {
+  const baseUrl = await storageAdapter.getBaseUrl();
+  if (!baseUrl) {
+    throw new Error('API base URL is not configured. Please set your instance URL in the login form.');
+  }
+
+  // If base URL changed or client doesn't exist, create a new one
+  if (!apiClientCache || apiClientBaseUrl !== baseUrl) {
+    apiClientCache = createApiClient({
+      baseUrl,
+      storage: storageAdapter,
+      enableCache: true,
+    });
+    apiClientBaseUrl = baseUrl;
+  }
+
+  return apiClientCache;
+}
 
 // Re-export ApiError for backward compatibility
 export { ApiError } from '@shared';
@@ -33,43 +47,59 @@ export { getCursorFromUrl };
  * Login and store token
  * Unified method name: login (was login in client, authenticate in extension)
  */
-export const login = async (email: string, password: string): Promise<string> => {
-  return apiClient.login(email, password);
+export const login = async (instanceUrl: string, username: string, password: string): Promise<string> => {
+  // Save instance URL first
+  await storageAdapter.setBaseUrl(instanceUrl);
+
+  // Get fresh API client with new base URL
+  const client = await getOrCreateApiClient();
+
+  return client.login(username, password);
 };
 
 /**
  * Register a new user account
  */
-export const register = async (userData: { email: string; password: string; username: string }): Promise<UserOwner> => {
-  return apiClient.register(userData);
+export const register = async (instanceUrl: string, userData: { email: string; password: string; username: string }): Promise<UserOwner> => {
+  // Save instance URL first
+  await storageAdapter.setBaseUrl(instanceUrl);
+
+  // Get fresh API client with new base URL
+  const client = await getOrCreateApiClient();
+
+  return client.register(userData);
 };
 
 /**
  * Get paginated bookmarks with optional tag filter
  */
 export const getBookmarks = async (tags?: string, after?: string): Promise<BookmarksResponse> => {
-  return apiClient.getBookmarks(tags, after);
+  const client = await getOrCreateApiClient();
+  return client.getBookmarks(tags, after);
 };
 
 /**
  * Get a single bookmark by ID
  */
 export const getBookmark = async (id: string): Promise<Bookmark | null> => {
-  return apiClient.getBookmark(id);
+  const client = await getOrCreateApiClient();
+  return client.getBookmark(id);
 };
 
 /**
  * Get bookmark history for a specific bookmark
  */
 export const getBookmarkHistory = async (id: string): Promise<BookmarksResponse> => {
-  return apiClient.getBookmarkHistory(id);
+  const client = await getOrCreateApiClient();
+  return client.getBookmarkHistory(id);
 };
 
 /**
  * Update bookmark tags
  */
 export const updateBookmarkTags = async (id: string, tagSlugs: string[]): Promise<Bookmark> => {
-  return apiClient.updateBookmarkTags(id, tagSlugs);
+  const client = await getOrCreateApiClient();
+  return client.updateBookmarkTags(id, tagSlugs);
 };
 
 /**
@@ -77,40 +107,49 @@ export const updateBookmarkTags = async (id: string, tagSlugs: string[]): Promis
  * Unified method name: getTags (was getTags in client, fetchUserTags in extension)
  */
 export const getTags = async (): Promise<Tag[]> => {
-  return apiClient.getTags();
+  const client = await getOrCreateApiClient();
+  return client.getTags();
 };
 
 /**
  * Get a single tag by slug
  */
 export const getTag = async (slug: string): Promise<Tag | null> => {
-  return apiClient.getTag(slug);
+  const client = await getOrCreateApiClient();
+  return client.getTag(slug);
 };
 
 /**
  * Create a new tag
  */
 export const createTag = async (name: string): Promise<Tag> => {
-  return apiClient.createTag(name);
+  const client = await getOrCreateApiClient();
+  return client.createTag(name);
 };
 
 /**
  * Update an existing tag
  */
 export const updateTag = async (slug: string, tag: Tag): Promise<Tag> => {
-  return apiClient.updateTag(slug, tag);
+  const client = await getOrCreateApiClient();
+  return client.updateTag(slug, tag);
 };
 
 /**
  * Delete a tag
  */
 export const deleteTag = async (slug: string): Promise<void> => {
-  return apiClient.deleteTag(slug);
+  const client = await getOrCreateApiClient();
+  return client.deleteTag(slug);
 };
 
 /**
  * Invalidate the tags cache
  */
 export const invalidateTagsCache = (): void => {
-  apiClient.invalidateTagsCache();
+  // Note: This invalidates cache on the current client instance
+  // If base URL changes, a new client will be created anyway
+  if (apiClientCache) {
+    apiClientCache.invalidateTagsCache();
+  }
 };

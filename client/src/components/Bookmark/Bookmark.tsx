@@ -6,7 +6,6 @@ import type { Bookmark as BookmarkType } from '../../types';
 import { LAYOUT_EMBEDDED } from '../../types';
 import { findEmbed } from '../../utils/embed';
 import { shareBookmark } from '../../utils/share';
-import { resolveContentUrl } from '../../utils/image';
 import { formatDate } from '../../utils/date';
 
 interface BookmarkProps {
@@ -32,7 +31,7 @@ export const Bookmark = ({
   const [embedLoaded, setEmbedLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showEditTagsModal, setShowEditTagsModal] = useState(false);
-  const imageUrl = resolveContentUrl(bookmark.mainImage?.contentUrl);
+  const imageUrl = bookmark.mainImage?.contentUrl;
 
   const handleTagClick = (slug: string) => {
     if (onTagToggle) {

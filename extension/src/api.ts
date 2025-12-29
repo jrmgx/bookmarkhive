@@ -80,9 +80,9 @@ export async function clearJWTToken(): Promise<void> {
  * Authenticates the user and stores the token
  * Unified method name: login (was authenticate)
  */
-export async function authenticate(email: string, password: string): Promise<{ token: string }> {
+export async function authenticate(username: string, password: string): Promise<{ token: string }> {
   const client = await getApiClient();
-  const token = await client.login(email, password);
+  const token = await client.login(username, password);
   return { token };
 }
 

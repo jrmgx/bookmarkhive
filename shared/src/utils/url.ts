@@ -27,9 +27,26 @@ export function getCursorFromUrl(url: string | null): string | undefined {
   if (!url) return undefined;
   try {
     // Handle relative URLs (e.g., /users/me/bookmarks?after=...)
-    // Prefer environment variable, fallback to window.location.origin
-    const envBaseUrl = (import.meta as any)?.env?.VITE_API_BASE_URL;
-    const baseUrl = envBaseUrl || window.location.origin;
+    // Try to get base URL from localStorage first, then environment variable, then fallback to window.location.origin
+    let baseUrl: string | undefined;
+
+    // Try localStorage (for client) - synchronous access
+    if (typeof localStorage !== 'undefined') {
+      const storedBaseUrl = localStorage.getItem('api_base_url');
+      if (storedBaseUrl) {
+        baseUrl = storedBaseUrl;
+      }
+    }
+
+    // Fallback to environment variable or window.location.origin
+    if (!baseUrl) {
+      const envBaseUrl = (import.meta as any)?.env?.VITE_API_BASE_URL;
+      baseUrl = envBaseUrl || (typeof window !== 'undefined' ? window.location.origin : undefined);
+    }
+
+    if (!baseUrl) {
+      return undefined;
+    }
 
     const urlObj = url.startsWith('http')
       ? new URL(url)

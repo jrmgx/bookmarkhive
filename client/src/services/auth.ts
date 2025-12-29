@@ -5,7 +5,7 @@
 
 import { createLocalStorageAdapter } from '@shared';
 
-const adapter = createLocalStorageAdapter();
+const adapter = createLocalStorageAdapter(import.meta.env.VITE_API_BASE_URL || undefined);
 
 /**
  * Set authentication token
@@ -29,6 +29,20 @@ export const getToken = async (): Promise<string | null> => {
  */
 export const clearToken = async (): Promise<void> => {
   return adapter.clearToken();
+};
+
+/**
+ * Set API base URL
+ */
+export const setBaseUrl = async (baseUrl: string): Promise<void> => {
+  await adapter.setBaseUrl(baseUrl);
+};
+
+/**
+ * Get API base URL
+ */
+export const getBaseUrl = async (): Promise<string | null> => {
+  return adapter.getBaseUrl();
 };
 
 /**

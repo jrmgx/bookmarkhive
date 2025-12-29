@@ -2,13 +2,14 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
 import { login, ApiError } from '../services/api';
-import { setToken, isAuthenticated } from '../services/auth';
+import { setToken, isAuthenticated, getBaseUrl } from '../services/auth';
 
 export const Login = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('');
+  const [instanceUrl, setInstanceUrl] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
@@ -24,11 +25,19 @@ export const Login = () => {
   }, [location.state]);
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      navigate('/');
-    } else {
-      setCheckingAuth(false);
-    }
+    const checkAuthAndLoadInstance = async () => {
+      if (isAuthenticated()) {
+        navigate('/');
+      } else {
+        // Load stored instance URL if available
+        const storedInstanceUrl = await getBaseUrl();
+        if (storedInstanceUrl) {
+          setInstanceUrl(storedInstanceUrl);
+        }
+        setCheckingAuth(false);
+      }
+    };
+    checkAuthAndLoadInstance();
   }, [navigate]);
 
   if (checkingAuth) {
@@ -48,7 +57,16 @@ export const Login = () => {
     setIsLoading(true);
 
     try {
-      const token = await login(email, password);
+      // Validate instance URL
+      if (!instanceUrl.trim()) {
+        setError('Please enter an instance URL');
+        return;
+      }
+
+      // Normalize instance URL (remove trailing slash)
+      const normalizedUrl = instanceUrl.trim().replace(/\/$/, '');
+
+      const token = await login(normalizedUrl, username, password);
       setToken(token);
       navigate('/');
     } catch (err) {
@@ -83,18 +101,33 @@ export const Login = () => {
 
                 <form onSubmit={handleSubmit}>
                   <div className="mb-3">
-                    <label htmlFor="email" className="form-label">
-                      Email
+                    <label htmlFor="instanceUrl" className="form-label">
+                      Instance URL
                     </label>
                     <input
-                      type="email"
+                      type="url"
                       className="form-control"
-                      id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="instanceUrl"
+                      value={instanceUrl}
+                      onChange={(e) => setInstanceUrl(e.target.value)}
                       required
                       disabled={isLoading}
                       autoFocus
+                    />
+                    <small className="form-text text-muted">Enter your BookmarkHive instance URL</small>
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="username" className="form-label">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="mb-3">

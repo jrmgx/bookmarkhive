@@ -110,6 +110,25 @@ export function createBrowserStorageAdapter(): StorageAdapter {
         });
       });
     },
+
+    async setBaseUrl(baseUrl: string): Promise<void> {
+      const storage = getBrowserStorage();
+      if (!storage) {
+        console.error('Storage API not available');
+        return;
+      }
+
+      return new Promise((resolve) => {
+        storage.local.set({ apiHost: baseUrl }, () => {
+          // @ts-expect-error - chrome.runtime.lastError may not exist
+          const browserAPI = typeof chrome !== 'undefined' ? chrome : typeof browser !== 'undefined' ? browser : null;
+          if (browserAPI?.runtime?.lastError) {
+            console.error('Error storing API host:', browserAPI.runtime.lastError.message);
+          }
+          resolve();
+        });
+      });
+    },
   };
 }
 

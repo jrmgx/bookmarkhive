@@ -185,7 +185,7 @@ export const EditTag = ({ tag, onSave, onClose }: EditTagProps) => {
                     id="tagIcon"
                     value={formData.icon}
                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    placeholder="icon"
+                    placeholder="emoji"
                     disabled={isSaving || isDeleting}
                     style={{ width: '3.5rem', minWidth: '3.5rem', maxWidth: '3.5rem', flexShrink: 0 }}
                   />

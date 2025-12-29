@@ -1,156 +1,191 @@
 // Options page script for the extension
 
-import { getBrowserStorage } from './lib/browser';
-import { authenticate as apiAuthenticate } from './api';
+import { createBrowserStorageAdapter } from '@shared';
+import { createApiClient } from '@shared';
 
 document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('loginForm') as HTMLFormElement | null;
+    const loggedInState = document.getElementById('loggedInState') as HTMLElement | null;
+    const instanceUrlInput = document.getElementById('instanceUrl') as HTMLInputElement | null;
+    const usernameInput = document.getElementById('username') as HTMLInputElement | null;
+    const passwordInput = document.getElementById('password') as HTMLInputElement | null;
     const loginButton = document.getElementById('loginButton') as HTMLButtonElement | null;
-    const saveApiHostButton = document.getElementById('saveApiHostButton') as HTMLButtonElement | null;
-    const apiHostInput = document.getElementById('apiHost') as HTMLInputElement | null;
+    const logoutButton = document.getElementById('logoutButton') as HTMLButtonElement | null;
     const statusMessage = document.getElementById('statusMessage') as HTMLElement | null;
 
-    const storage = getBrowserStorage();
+    const storageAdapter = createBrowserStorageAdapter();
 
-    // Load saved API host on page load
-    loadApiHost();
+    // Check authentication status and load saved instance URL on page load
+    checkAuthStatus();
 
-    // Handle save API host button
-    if (saveApiHostButton) {
-        saveApiHostButton.addEventListener('click', async () => {
-            await saveApiHost();
-        });
-    }
-
-    // Handle login button
-    if (loginButton) {
-        loginButton.addEventListener('click', async () => {
+    // Handle form submission
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             await authenticate();
         });
     }
 
-    // Load API host from storage
-    async function loadApiHost(): Promise<void> {
-        if (!apiHostInput || !storage) return;
+    // Handle logout button
+    if (logoutButton) {
+        logoutButton.addEventListener('click', async () => {
+            await logout();
+        });
+    }
 
+    // Check authentication status and show appropriate UI
+    async function checkAuthStatus(): Promise<void> {
         try {
-            const result = await new Promise<{ apiHost?: string }>((resolve) => {
-                storage.local.get(['apiHost'], (result: { apiHost?: string }) => {
-                    if (chrome.runtime.lastError) {
-                        console.error('Error loading API host:', chrome.runtime.lastError.message);
-                        resolve({});
-                    } else {
-                        resolve(result);
-                    }
-                });
-            });
+            const token = await storageAdapter.getToken();
+            const instanceUrl = await storageAdapter.getBaseUrl();
 
-            if (result.apiHost) {
-                apiHostInput.value = result.apiHost;
+            if (token) {
+                // User is logged in - show logged in state
+                showLoggedInState();
+            } else {
+                // User is not logged in - show login form
+                showLoginForm();
+                // Load saved instance URL if available
+                if (instanceUrl && instanceUrlInput) {
+                    instanceUrlInput.value = instanceUrl;
+                }
             }
         } catch (error) {
-            console.error('Error loading API host:', error);
+            console.error('Error checking auth status:', error);
+            showLoginForm();
         }
     }
 
-    // Save API host to storage
-    async function saveApiHost(): Promise<void> {
-        if (!apiHostInput || !saveApiHostButton || !storage) {
-            showStatus('API host input field not found', 'error');
-            return;
+    // Show logged in state
+    function showLoggedInState(): void {
+        if (loggedInState) {
+            loggedInState.classList.add('show');
         }
-
-        const apiHost = apiHostInput.value.trim();
-
-        if (!apiHost) {
-            showStatus('Please enter an API host', 'error');
-            return;
+        if (loginForm) {
+            loginForm.classList.add('hide');
         }
+    }
 
-        // Validate URL format
-        try {
-            new URL(apiHost);
-        } catch (error) {
-            showStatus('Please enter a valid URL (e.g., https://bookmarkhive.test)', 'error');
-            return;
+    // Show login form
+    function showLoginForm(): void {
+        if (loggedInState) {
+            loggedInState.classList.remove('show');
         }
-
-        // Disable save button during request
-        saveApiHostButton.disabled = true;
-        saveApiHostButton.textContent = 'Saving...';
-
-        try {
-            await new Promise<void>((resolve, reject) => {
-                storage.local.set({ apiHost: apiHost }, () => {
-                    if (chrome.runtime.lastError) {
-                        reject(new Error(chrome.runtime.lastError.message));
-                    } else {
-                        resolve();
-                    }
-                });
-            });
-
-            showStatus('API host saved successfully!', 'success');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            showStatus(`Failed to save API host: ${errorMessage}`, 'error');
-        } finally {
-            // Re-enable save button
-            saveApiHostButton.disabled = false;
-            saveApiHostButton.textContent = 'Save API Host';
+        if (loginForm) {
+            loginForm.classList.remove('hide');
         }
     }
 
     // Authenticate and get JWT token
     async function authenticate(): Promise<void> {
-        const emailEl = document.getElementById('email') as HTMLInputElement | null;
-        const passwordEl = document.getElementById('password') as HTMLInputElement | null;
-
-        if (!emailEl || !passwordEl) {
-            showStatus('Email and password fields not found', 'error');
+        if (!instanceUrlInput || !usernameInput || !passwordInput) {
+            showStatus('Form fields not found', 'error');
             return;
         }
 
-        const email = emailEl.value.trim();
-        const password = passwordEl.value;
+        const instanceUrl = instanceUrlInput.value.trim();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
 
-        if (!email || !password) {
-            showStatus('Please enter both email and password', 'error');
+        // Validate inputs
+        if (!instanceUrl) {
+            showStatus('Please enter an instance URL', 'error');
             return;
         }
 
-        if (!storage) {
-            showStatus('Storage API not available', 'error');
+        if (!username || !password) {
+            showStatus('Please enter both username and password', 'error');
             return;
         }
 
-        // Disable login button during request
+        // Validate URL format
+        let normalizedUrl: string;
+        try {
+            normalizedUrl = instanceUrl.replace(/\/$/, '');
+            new URL(normalizedUrl);
+        } catch (error) {
+            showStatus('Please enter a valid URL (e.g., https://bookmarkhive.test)', 'error');
+            return;
+        }
+
+        // Disable form inputs during request
         if (loginButton) {
             loginButton.disabled = true;
             loginButton.textContent = 'Logging in...';
         }
+        instanceUrlInput.disabled = true;
+        usernameInput.disabled = true;
+        passwordInput.disabled = true;
 
         try {
-            const authResponse = await apiAuthenticate(email, password);
+            // Save instance URL first (like the client does)
+            await storageAdapter.setBaseUrl(normalizedUrl);
 
-            // Store JWT token securely in chrome.storage.local (more secure than sync)
-            // chrome.storage.local is encrypted by the browser and stored locally
-            storage.local.set({ jwtToken: authResponse.token }, () => {
-                if (chrome.runtime.lastError) {
-                    showStatus(`Failed to save token: ${chrome.runtime.lastError.message}`, 'error');
-                } else {
-                    showStatus('Authentication successful! Token saved securely.', 'success');
-                    // Clear password field for security
-                    passwordEl.value = '';
-                }
+            // Create API client with the new base URL
+            const client = createApiClient({
+                baseUrl: normalizedUrl,
+                storage: storageAdapter,
+                enableCache: true,
             });
+
+            // Authenticate and get token
+            const token = await client.login(username, password);
+
+            // Token is automatically saved by the storage adapter via the API client
+            showStatus('Authentication successful! Token saved securely.', 'success');
+
+            // Clear password field for security
+            passwordInput.value = '';
+
+            // Switch to logged in state
+            showLoggedInState();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
             showStatus(`Authentication failed: ${errorMessage}`, 'error');
         } finally {
-            // Re-enable login button
+            // Re-enable form inputs
             if (loginButton) {
                 loginButton.disabled = false;
-                loginButton.textContent = 'Login & Save Token';
+                loginButton.textContent = 'Login';
+            }
+            instanceUrlInput.disabled = false;
+            usernameInput.disabled = false;
+            passwordInput.disabled = false;
+        }
+    }
+
+    // Logout and clear all stored data
+    async function logout(): Promise<void> {
+        if (!logoutButton) return;
+
+        // Disable logout button during process
+        logoutButton.disabled = true;
+        logoutButton.textContent = 'Logging out...';
+
+        try {
+            // Clear token
+            await storageAdapter.clearToken();
+
+            // Clear instance URL as well (to fully reset)
+            await storageAdapter.setBaseUrl('');
+
+            // Switch back to login form
+            showLoginForm();
+
+            // Clear form fields
+            if (instanceUrlInput) instanceUrlInput.value = '';
+            if (usernameInput) usernameInput.value = '';
+            if (passwordInput) passwordInput.value = '';
+
+            showStatus('Logged out successfully. All stored data has been cleared.', 'success');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            showStatus(`Logout failed: ${errorMessage}`, 'error');
+        } finally {
+            // Re-enable logout button
+            if (logoutButton) {
+                logoutButton.disabled = false;
+                logoutButton.textContent = 'Logout';
             }
         }
     }

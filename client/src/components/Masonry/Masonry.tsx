@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Bookmark } from '../../types';
-import { resolveContentUrl } from '../../utils/image';
 
 interface MasonryProps {
   bookmarks: Bookmark[];
@@ -101,7 +100,7 @@ export const Masonry = ({ bookmarks }: MasonryProps) => {
                       }
                     }}
                     className="w-100"
-                    src={resolveContentUrl(bookmark.mainImage?.contentUrl)}
+                    src={bookmark.mainImage?.contentUrl ?? undefined}
                     alt={bookmark.title}
                   />
                 </a>

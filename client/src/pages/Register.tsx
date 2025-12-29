@@ -2,11 +2,12 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
 import { register, ApiError } from '../services/api';
-import { isAuthenticated } from '../services/auth';
+import { isAuthenticated, getBaseUrl } from '../services/auth';
 
 export const Register = () => {
 
   const navigate = useNavigate();
+  const [instanceUrl, setInstanceUrl] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -17,11 +18,19 @@ export const Register = () => {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      navigate('/');
-    } else {
-      setCheckingAuth(false);
-    }
+    const checkAuthAndLoadInstance = async () => {
+      if (isAuthenticated()) {
+        navigate('/');
+      } else {
+        // Load stored instance URL if available
+        const storedInstanceUrl = await getBaseUrl();
+        if (storedInstanceUrl) {
+          setInstanceUrl(storedInstanceUrl);
+        }
+        setCheckingAuth(false);
+      }
+    };
+    checkAuthAndLoadInstance();
   }, [navigate]);
 
   if (checkingAuth) {
@@ -48,7 +57,16 @@ export const Register = () => {
     setIsLoading(true);
 
     try {
-      await register({ email, password, username });
+      // Validate instance URL
+      if (!instanceUrl.trim()) {
+        setError('Please enter an instance URL');
+        return;
+      }
+
+      // Normalize instance URL (remove trailing slash)
+      const normalizedUrl = instanceUrl.trim().replace(/\/$/, '');
+
+      await register(normalizedUrl, { email, password, username });
       // After successful registration, redirect to login
       navigate('/login', { state: { message: 'Account created successfully. Please login.' } });
     } catch (err: unknown) {
@@ -77,6 +95,22 @@ export const Register = () => {
 
                 <form onSubmit={handleSubmit}>
                   <div className="mb-3">
+                    <label htmlFor="instanceUrl" className="form-label">
+                      Instance URL
+                    </label>
+                    <input
+                      type="url"
+                      className="form-control"
+                      id="instanceUrl"
+                      value={instanceUrl}
+                      onChange={(e) => setInstanceUrl(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      autoFocus
+                    />
+                    <small className="form-text text-muted">Enter your BookmarkHive instance URL</small>
+                  </div>
+                  <div className="mb-3">
                     <label htmlFor="email" className="form-label">
                       Email
                     </label>
@@ -88,7 +122,6 @@ export const Register = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       disabled={isLoading}
-                      autoFocus
                     />
                   </div>
                   <div className="mb-3">

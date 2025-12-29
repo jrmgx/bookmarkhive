@@ -26,5 +26,11 @@ export interface StorageAdapter {
    * @returns Promise that resolves to the base URL or null if not configured
    */
   getBaseUrl(): Promise<string | null>;
+
+  /**
+   * Stores the API base URL in storage
+   * @param baseUrl The base URL to store
+   */
+  setBaseUrl(baseUrl: string): Promise<void>;
 }
 

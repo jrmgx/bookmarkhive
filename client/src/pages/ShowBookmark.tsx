@@ -4,7 +4,6 @@ import { Icon } from '../components/Icon/Icon';
 import { Bookmark } from '../components/Bookmark/Bookmark';
 import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
 import { getBookmark, getBookmarkHistory, ApiError } from '../services/api';
-import { resolveContentUrl } from '../utils/image';
 import { formatDate } from '../utils/date';
 import type { Bookmark as BookmarkType } from '../types';
 import { LAYOUT_DEFAULT } from '../types';
@@ -67,7 +66,7 @@ export const ShowBookmark = () => {
       setIsLoadingArchive(true);
 
       try {
-        const archiveFileUrl = resolveContentUrl(targetBookmark.archive.contentUrl);
+        const archiveFileUrl = targetBookmark.archive.contentUrl;
         if (!archiveFileUrl) {
           setArchiveUrl(null);
           return;

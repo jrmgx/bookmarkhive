@@ -263,7 +263,7 @@ export interface BookmarksResponse {
  * AuthRequest - Request payload for authentication
  */
 export interface AuthRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
