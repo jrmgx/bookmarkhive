@@ -8,7 +8,7 @@ class FileObjectTest extends BaseApiTestCase
 {
     public function testCreateMediaObject(): void
     {
-        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [, $token] = $this->createAuthenticatedUser('testuser', 'test');
         $file = new UploadedFile(__DIR__ . '/data/image_01.jpg', 'image_01.jpg');
 
         $this->assertUnauthorized('POST', '/users/me/files', [
@@ -39,12 +39,10 @@ class FileObjectTest extends BaseApiTestCase
         $this->assertArrayHasKey('size', $json);
         $this->assertArrayHasKey('mime', $json);
 
-        $this->assertIsString($json['@iri']);
-        $this->assertIsString($json['contentUrl']);
         $this->assertIsInt($json['size']);
         $this->assertIsString($json['mime']);
 
-        // TODO at some point this should be true
-        // $this->assertStringStartsWith('http', $json['contentUrl'], 'contentUrl should be a valid URL');
+        $this->assertValidUrl($json['@iri'], '@iri should be a valid URL');
+        $this->assertValidUrl($json['contentUrl'], 'contentUrl should be a valid URL');
     }
 }

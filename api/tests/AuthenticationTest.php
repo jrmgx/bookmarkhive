@@ -14,7 +14,6 @@ class AuthenticationTest extends BaseApiTestCase
         $container = $this->container;
 
         $user = new User();
-        $user->email = 'test@example.com';
         $user->username = 'test';
         $user->setPassword(
             $container->get('security.user_password_hasher')->hashPassword($user, 'test')
@@ -28,7 +27,7 @@ class AuthenticationTest extends BaseApiTestCase
         $this->request('POST', '/auth', [
             'headers' => ['Content-Type' => 'application/json'],
             'json' => [
-                'email' => 'test@example.com',
+                'username' => 'test',
                 'password' => 'test',
             ],
         ]);

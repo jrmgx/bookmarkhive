@@ -14,7 +14,7 @@ final class AppStory extends Story
 {
     public function build(): void
     {
-        $user = UserFactory::createOne(['username' => 'one', 'email' => 'one@example.com']);
+        $user = UserFactory::createOne(['username' => 'one']);
         TagFactory::createMany(10, ['owner' => $user]);
         $tagPublic = TagFactory::createOne(['name' => 'Tag Public', 'owner' => $user, 'isPublic' => true]);
         $tagPrivate = TagFactory::createOne(['name' => 'Tag Private', 'owner' => $user, 'isPublic' => false]);

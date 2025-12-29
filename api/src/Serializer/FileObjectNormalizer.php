@@ -12,6 +12,7 @@ readonly class FileObjectNormalizer implements NormalizerInterface
         #[Autowire(service: IriNormalizer::class)]
         private NormalizerInterface $normalizer,
         private string $storageDefaultPublicPath,
+        private string $baseUri,
     ) {
     }
 
@@ -25,7 +26,7 @@ readonly class FileObjectNormalizer implements NormalizerInterface
         /* @phpstan-ignore-next-line */
         $normalizedData['contentUrl'] =
             // TODO use flysystem instead
-            $this->storageDefaultPublicPath . '/' . $data->filePath;
+            $this->baseUri . $this->storageDefaultPublicPath . '/' . $data->filePath;
 
         return $normalizedData;
     }

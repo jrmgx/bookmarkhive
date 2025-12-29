@@ -13,7 +13,7 @@ class BookmarkTest extends BaseApiTestCase
 {
     public function testListOwnBookmarks(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
         $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
@@ -34,7 +34,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testListOwnBookmarksWithFilter(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag One', 'isPublic' => true]);
         $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag Two', 'isPublic' => true]);
@@ -100,7 +100,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCreateBookmark(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
         $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
@@ -138,7 +138,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCreateBookmarkWithTagAsJsonObjectFails(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
@@ -160,7 +160,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCreateBookmarkWithInvalidTagIri(): void
     {
-        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         // Use unexistant IRI (does not exist)
         $this->request('POST', '/users/me/bookmarks', [
@@ -198,7 +198,7 @@ class BookmarkTest extends BaseApiTestCase
     #[DataProvider('fileFieldProvider')]
     public function testCreateBookmarkWithFile(string $fieldName, string $expectedTitle): void
     {
-        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [, $token] = $this->createAuthenticatedUser('testuser', 'test');
         $file = new UploadedFile(__DIR__ . '/data/image_01.jpg', 'image_01.jpg');
 
         $this->request('POST', '/users/me/files', [
@@ -242,8 +242,9 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertIsArray($json[$fieldName], "{$fieldName} should be an unfolded FileObject");
         $this->assertArrayHasKey('@iri', $json[$fieldName]);
         $this->assertEquals($fileObjectIri, $json[$fieldName]['@iri'], "{$fieldName} @iri should reference the created FileObject");
+        $this->assertValidUrl($json[$fieldName]['@iri'], "{$fieldName} @iri should be a valid URL");
         $this->assertArrayHasKey('contentUrl', $json[$fieldName], "{$fieldName} should have contentUrl");
-        $this->assertIsString($json[$fieldName]['contentUrl']);
+        $this->assertValidUrl($json[$fieldName]['contentUrl'], "{$fieldName} contentUrl should be a valid URL");
         $this->assertBookmarkOwnerResponse($json);
 
         // Verify we can retrieve the bookmark and it still has the file field
@@ -273,7 +274,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testGetOwnBookmark(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
         $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
@@ -305,7 +306,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testEditOwnBookmark(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
         $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
@@ -355,7 +356,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testDeleteOwnBookmark(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $bookmark = BookmarkFactory::createOne(['owner' => $user]);
 
@@ -373,7 +374,6 @@ class BookmarkTest extends BaseApiTestCase
     public function testListPublicBookmarksOfUser(): void
     {
         $user = UserFactory::createOne([
-            'email' => 'test@example.com',
             'username' => 'testuser',
         ]);
 
@@ -395,7 +395,6 @@ class BookmarkTest extends BaseApiTestCase
     public function testGetPublicBookmark(): void
     {
         $user = UserFactory::createOne([
-            'email' => 'test@example.com',
             'username' => 'testuser',
         ]);
 
@@ -437,7 +436,6 @@ class BookmarkTest extends BaseApiTestCase
     public function testGetPublicBookmarkWithFilter(): void
     {
         $user = UserFactory::createOne([
-            'email' => 'test@example.com',
             'username' => 'testuser',
         ]);
 
@@ -492,7 +490,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCursorBasedPagination(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         // Bookmark 120 is the newest (created last)
         for ($i = 1; $i <= 120; ++$i) {
@@ -551,8 +549,8 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCanNotAccessOtherUsersPrivateBookmark(): void
     {
-        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
-        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');
 
         $privateBookmark = BookmarkFactory::createOne([
             'owner' => $owner,
@@ -572,8 +570,8 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCanNotEditOtherUsersBookmark(): void
     {
-        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
-        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');
 
         $bookmark = BookmarkFactory::createOne([
             'owner' => $owner,
@@ -605,8 +603,8 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCanNotDeleteOtherUsersBookmark(): void
     {
-        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
-        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');
 
         $bookmark = BookmarkFactory::createOne([
             'owner' => $owner,
@@ -628,7 +626,7 @@ class BookmarkTest extends BaseApiTestCase
     #[DataProvider('domainExtractionProvider')]
     public function testDomainExtractionFromUrl(string $url, string $expectedDomain): void
     {
-        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
@@ -671,7 +669,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testBookmarkHistory(): void
     {
-        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         // Create first bookmark (Version 1)
         $this->request('POST', '/users/me/bookmarks', [
@@ -741,7 +739,7 @@ class BookmarkTest extends BaseApiTestCase
 
     private function assertOtherUserCannotAccess(string $method, string $url, array $options = []): void
     {
-        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');
 
         $requestOptions = array_merge($options, ['auth_bearer' => $otherToken]);
         $this->request($method, $url, $requestOptions);
@@ -773,11 +771,13 @@ class BookmarkTest extends BaseApiTestCase
             $expectedBookmarkFields[] = 'archive';
             $this->assertIsArray($json['archive'], 'archive should be an unfolded FileObject');
             $this->assertArrayHasKey('contentUrl', $json['archive']);
+            $this->assertValidUrl($json['archive']['contentUrl'], 'archive contentUrl should be a valid URL');
         }
         if (isset($json['mainImage'])) {
             $expectedBookmarkFields[] = 'mainImage';
             $this->assertIsArray($json['mainImage'], 'mainImage should be an unfolded FileObject');
             $this->assertArrayHasKey('contentUrl', $json['mainImage']);
+            $this->assertValidUrl($json['mainImage']['contentUrl'], 'mainImage contentUrl should be a valid URL');
         }
 
         $this->assertEqualsCanonicalizing(
@@ -785,6 +785,9 @@ class BookmarkTest extends BaseApiTestCase
             array_values($bookmarkFields),
             'Response should contain exactly ' . implode(', ', $expectedBookmarkFields) . ' fields'
         );
+
+        $this->assertArrayHasKey('@iri', $json);
+        $this->assertValidUrl($json['@iri'], '@iri should be a valid URL');
     }
 
     /**
@@ -812,11 +815,13 @@ class BookmarkTest extends BaseApiTestCase
                 $expectedBookmarkFields[] = 'archive';
                 $this->assertIsArray($bookmark['archive'], 'archive should be an unfolded FileObject');
                 $this->assertArrayHasKey('contentUrl', $bookmark['archive']);
+                $this->assertValidUrl($bookmark['archive']['contentUrl'], 'archive contentUrl should be a valid URL');
             }
             if (isset($bookmark['mainImage'])) {
                 $expectedBookmarkFields[] = 'mainImage';
                 $this->assertIsArray($bookmark['mainImage'], 'mainImage should be an unfolded FileObject');
                 $this->assertArrayHasKey('contentUrl', $bookmark['mainImage']);
+                $this->assertValidUrl($bookmark['mainImage']['contentUrl'], 'mainImage contentUrl should be a valid URL');
             }
 
             $this->assertEqualsCanonicalizing(
@@ -824,6 +829,9 @@ class BookmarkTest extends BaseApiTestCase
                 array_values($bookmarkFields),
                 'Each bookmark in collection should contain exactly ' . implode(', ', $expectedBookmarkFields) . ' fields'
             );
+
+            $this->assertArrayHasKey('@iri', $bookmark);
+            $this->assertValidUrl($bookmark['@iri'], '@iri should be a valid URL');
         }
     }
 
@@ -847,11 +855,13 @@ class BookmarkTest extends BaseApiTestCase
             $expectedBookmarkFields[] = 'archive';
             $this->assertIsArray($json['archive'], 'archive should be an unfolded FileObject');
             $this->assertArrayHasKey('contentUrl', $json['archive']);
+            $this->assertValidUrl($json['archive']['contentUrl'], 'archive contentUrl should be a valid URL');
         }
         if (isset($json['mainImage'])) {
             $expectedBookmarkFields[] = 'mainImage';
             $this->assertIsArray($json['mainImage'], 'mainImage should be an unfolded FileObject');
             $this->assertArrayHasKey('contentUrl', $json['mainImage']);
+            $this->assertValidUrl($json['mainImage']['contentUrl'], 'mainImage contentUrl should be a valid URL');
         }
 
         $this->assertEqualsCanonicalizing(
@@ -862,6 +872,9 @@ class BookmarkTest extends BaseApiTestCase
 
         // Ensure isPublic is not exposed in public profile
         $this->assertArrayNotHasKey('isPublic', $json, 'isPublic should not be in public profile response');
+
+        $this->assertArrayHasKey('@iri', $json);
+        $this->assertValidUrl($json['@iri'], '@iri should be a valid URL');
     }
 
     /**
@@ -887,11 +900,13 @@ class BookmarkTest extends BaseApiTestCase
                 $expectedBookmarkFields[] = 'archive';
                 $this->assertIsArray($bookmark['archive'], 'archive should be an unfolded FileObject');
                 $this->assertArrayHasKey('contentUrl', $bookmark['archive']);
+                $this->assertValidUrl($bookmark['archive']['contentUrl'], 'archive contentUrl should be a valid URL');
             }
             if (isset($bookmark['mainImage'])) {
                 $expectedBookmarkFields[] = 'mainImage';
                 $this->assertIsArray($bookmark['mainImage'], 'mainImage should be an unfolded FileObject');
                 $this->assertArrayHasKey('contentUrl', $bookmark['mainImage']);
+                $this->assertValidUrl($bookmark['mainImage']['contentUrl'], 'mainImage contentUrl should be a valid URL');
             }
 
             $this->assertEqualsCanonicalizing(
@@ -902,6 +917,9 @@ class BookmarkTest extends BaseApiTestCase
 
             // Ensure isPublic is not exposed in public profile
             $this->assertArrayNotHasKey('isPublic', $bookmark, 'isPublic should not be in public profile response');
+
+            $this->assertArrayHasKey('@iri', $bookmark);
+            $this->assertValidUrl($bookmark['@iri'], '@iri should be a valid URL');
         }
     }
 }

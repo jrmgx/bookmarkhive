@@ -47,15 +47,21 @@ final class MeController extends AbstractController
         User $userPayload,
     ): JsonResponse {
         // Manual merge
-        $user->username = $userPayload->username ?? $user->username;
-        $user->email = $userPayload->email ?? $user->email;
         $user->meta = array_merge($user->meta, $userPayload->meta);
+
+        if (isset($userPayload->username) && $user->username !== $userPayload->username) {
+            $user->username = $userPayload->username;
+            // Changing username will invalidate JWT de-facto (as it is part of the payload)
+            // but we make it explicit in code
+            $user->rotateSecurity();
+        }
 
         if ($userPayload->getPlainPassword()) {
             $user->setPassword(
                 $this->passwordHasher->hashPassword($user, $userPayload->getPlainPassword())
             );
             $userPayload->setPlainPassword(null);
+            // By changing the password we want to invalidate all previous JWT
             $user->rotateSecurity();
         }
 

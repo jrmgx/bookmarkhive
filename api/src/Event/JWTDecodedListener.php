@@ -23,8 +23,8 @@ class JWTDecodedListener
     {
         $payload = $event->getPayload();
         $rotation = $payload['rotation'] ?? throw new BadRequestHttpException();
-        $email = $payload['email'] ?? throw new BadRequestHttpException();
-        $user = $this->userRepository->findOneByEmail($email) ?? throw new NotFoundHttpException();
+        $username = $payload['username'] ?? throw new BadRequestHttpException();
+        $user = $this->userRepository->findOneByUsername($username) ?? throw new NotFoundHttpException();
 
         if ($rotation !== $user->securityInvalidation) {
             $event->markAsInvalid();

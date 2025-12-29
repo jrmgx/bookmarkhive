@@ -17,7 +17,6 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[Context([DateTimeNormalizer::FORMAT_KEY => \DateTimeInterface::ATOM])]
-#[UniqueEntity('email', groups: ['user:create', 'user:update'])]
 #[UniqueEntity('username', groups: ['user:create', 'user:update'])]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
@@ -26,12 +25,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Ignore]
     #[ORM\Id, ORM\Column(type: 'uuid')]
     public private(set) string $id;
-
-    #[Groups(['user:create', 'user:owner'])]
-    #[Assert\NotBlank(groups: ['user:create'])]
-    #[Assert\Email]
-    #[ORM\Column(length: 180, unique: true)]
-    public string $email;
 
     #[Groups(['user:profile', 'user:create', 'user:owner', 'bookmark:profile', 'bookmark:owner'])]
     #[Assert\NotBlank(groups: ['user:create'])]
@@ -130,11 +123,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getUserIdentifier(): string
     {
-        if ('' === $this->email) {
-            throw new \LogicException('Email can not be empty.');
+        if ('' === $this->username) {
+            throw new \LogicException('Username can not be empty.');
         }
 
-        return $this->email;
+        return $this->username;
     }
 
     public function rotateSecurity(): self

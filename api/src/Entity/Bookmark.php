@@ -63,7 +63,7 @@ class Bookmark
     #[ORM\Column]
     public string $domain;
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::TEXT)]
     public string $normalizedUrl;
 
     /** @var Collection<int, Tag>|array<int, Tag> */

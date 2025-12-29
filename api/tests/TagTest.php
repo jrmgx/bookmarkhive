@@ -9,7 +9,7 @@ class TagTest extends BaseApiTestCase
 {
     public function testListOwnTags(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         TagFactory::createMany(3, ['owner' => $user]);
 
@@ -26,7 +26,7 @@ class TagTest extends BaseApiTestCase
 
     public function testCreateTag(): void
     {
-        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $this->assertUnauthorized('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
@@ -69,7 +69,7 @@ class TagTest extends BaseApiTestCase
 
     public function testCreateTagWithSameNameReturnsExisting(): void
     {
-        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
@@ -115,7 +115,7 @@ class TagTest extends BaseApiTestCase
 
     public function testCannotCreateMoreThan1000Tags(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         for ($i = 1; $i <= 1000; ++$i) {
             TagFactory::createOne([
@@ -141,7 +141,7 @@ class TagTest extends BaseApiTestCase
 
     public function testGetOwnTag(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag = TagFactory::createOne([
             'owner' => $user,
@@ -164,7 +164,7 @@ class TagTest extends BaseApiTestCase
 
     public function testEditOwnTag(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag = TagFactory::createOne([
             'owner' => $user,
@@ -201,7 +201,7 @@ class TagTest extends BaseApiTestCase
 
     public function testDeleteOwnTag(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag = TagFactory::createOne(['owner' => $user]);
 
@@ -219,7 +219,6 @@ class TagTest extends BaseApiTestCase
     public function testListPublicTagsOfUser(): void
     {
         $user = UserFactory::createOne([
-            'email' => 'test@example.com',
             'username' => 'testuser',
         ]);
 
@@ -238,7 +237,6 @@ class TagTest extends BaseApiTestCase
     public function testGetPublicTag(): void
     {
         $user = UserFactory::createOne([
-            'email' => 'test@example.com',
             'username' => 'testuser',
         ]);
 
@@ -269,7 +267,7 @@ class TagTest extends BaseApiTestCase
 
     public function testCreateTagWithMeta(): void
     {
-        [, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $this->request('POST', '/users/me/tags', [
             'headers' => ['Content-Type' => 'application/json'],
@@ -295,7 +293,7 @@ class TagTest extends BaseApiTestCase
 
     public function testUpdateTagWithMeta(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag = TagFactory::createOne([
             'owner' => $user,
@@ -326,7 +324,7 @@ class TagTest extends BaseApiTestCase
 
     public function testUpdateTagMetaMergesNotOverwrites(): void
     {
-        [$user, $token] = $this->createAuthenticatedUser('test@example.com', 'testuser', 'test');
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
         $tag = TagFactory::createOne([
             'owner' => $user,
@@ -366,8 +364,8 @@ class TagTest extends BaseApiTestCase
 
     public function testCanNotAccessOtherUsersPrivateTag(): void
     {
-        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
-        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');
 
         $privateTag = TagFactory::createOne([
             'owner' => $owner,
@@ -386,8 +384,8 @@ class TagTest extends BaseApiTestCase
 
     public function testCanNotEditOtherUsersTag(): void
     {
-        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
-        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');
 
         $tag = TagFactory::createOne([
             'owner' => $owner,
@@ -420,8 +418,8 @@ class TagTest extends BaseApiTestCase
 
     public function testCanNotDeleteOtherUsersTag(): void
     {
-        [$owner, $ownerToken] = $this->createAuthenticatedUser('owner@example.com', 'owneruser', 'test');
-        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+        [$owner, $ownerToken] = $this->createAuthenticatedUser('owneruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');
 
         $tag = TagFactory::createOne([
             'owner' => $owner,
@@ -441,7 +439,7 @@ class TagTest extends BaseApiTestCase
 
     private function assertOtherUserCannotAccess(string $method, string $url, array $options = []): void
     {
-        [, $otherToken] = $this->createAuthenticatedUser('other@example.com', 'otheruser', 'test');
+        [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');
 
         $requestOptions = array_merge($options, ['auth_bearer' => $otherToken]);
         $this->request($method, $url, $requestOptions);
@@ -468,6 +466,9 @@ class TagTest extends BaseApiTestCase
             array_values($tagFields),
             'Response should contain exactly ' . implode(', ', $expectedTagFields) . ' fields'
         );
+
+        $this->assertArrayHasKey('@iri', $json);
+        $this->assertValidUrl($json['@iri'], '@iri should be a valid URL');
     }
 
     /**
@@ -489,6 +490,9 @@ class TagTest extends BaseApiTestCase
                 array_values($tagFields),
                 'Each tag in collection should contain exactly ' . implode(', ', $expectedTagFields) . ' fields'
             );
+
+            $this->assertArrayHasKey('@iri', $tag);
+            $this->assertValidUrl($tag['@iri'], '@iri should be a valid URL');
         }
     }
 
@@ -508,6 +512,9 @@ class TagTest extends BaseApiTestCase
         // Ensure owner and isPublic are not exposed in public profile
         $this->assertArrayNotHasKey('owner', $json, 'owner should not be in public profile response');
         $this->assertArrayNotHasKey('isPublic', $json, 'isPublic should not be in public profile response');
+
+        $this->assertArrayHasKey('@iri', $json);
+        $this->assertValidUrl($json['@iri'], '@iri should be a valid URL');
     }
 
     /**
@@ -530,6 +537,9 @@ class TagTest extends BaseApiTestCase
             // Ensure owner and isPublic are not exposed in public profile
             $this->assertArrayNotHasKey('owner', $tag, 'owner should not be in public profile response');
             $this->assertArrayNotHasKey('isPublic', $tag, 'isPublic should not be in public profile response');
+
+            $this->assertArrayHasKey('@iri', $tag);
+            $this->assertValidUrl($tag['@iri'], '@iri should be a valid URL');
         }
     }
 }

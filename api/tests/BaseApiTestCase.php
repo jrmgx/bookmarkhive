@@ -28,10 +28,9 @@ abstract class BaseApiTestCase extends WebTestCase
         return dump($vars);
     }
 
-    protected function createUserWithPassword(string $email, string $username, string $password): User
+    protected function createUserWithPassword(string $username, string $password): User
     {
         $user = new User();
-        $user->email = $email;
         $user->username = $username;
         $user->setPassword(
             $this->container->get('security.user_password_hasher')->hashPassword($user, $password)
@@ -47,20 +46,20 @@ abstract class BaseApiTestCase extends WebTestCase
     /**
      * @return array{0: User, 1: string}
      */
-    protected function createAuthenticatedUser(string $email, string $username, string $password): array
+    protected function createAuthenticatedUser(string $username, string $password): array
     {
-        $user = $this->createUserWithPassword($email, $username, $password);
-        $token = $this->getToken($user->email, $password);
+        $user = $this->createUserWithPassword($username, $password);
+        $token = $this->getToken($user->username, $password);
 
         return [$user, $token];
     }
 
-    protected function getToken(string $email, string $password): string
+    protected function getToken(string $username, string $password): string
     {
         $this->client->request('POST', '/auth', [], [], [
             'CONTENT_TYPE' => 'application/json',
         ], json_encode([
-            'email' => $email,
+            'username' => $username,
             'password' => $password,
         ]));
 
@@ -83,7 +82,6 @@ abstract class BaseApiTestCase extends WebTestCase
         $server = [];
         $content = null;
 
-        // Handle headers
         if (isset($options['headers'])) {
             foreach ($options['headers'] as $key => $value) {
                 if ('content-type' === strtolower($key)) {
@@ -94,12 +92,10 @@ abstract class BaseApiTestCase extends WebTestCase
             }
         }
 
-        // Handle bearer token
         if (isset($options['auth_bearer'])) {
             $server['HTTP_AUTHORIZATION'] = 'Bearer ' . $options['auth_bearer'];
         }
 
-        // Handle JSON body
         if (isset($options['json'])) {
             $content = json_encode($options['json']);
             if (!isset($server['CONTENT_TYPE'])) {
@@ -107,7 +103,6 @@ abstract class BaseApiTestCase extends WebTestCase
             }
         }
 
-        // Handle file uploads
         if (isset($options['extra']['files'])) {
             $files = $options['extra']['files'];
             // Merge any JSON data as form parameters
@@ -136,5 +131,17 @@ abstract class BaseApiTestCase extends WebTestCase
     {
         $this->request($method, $url, $options);
         $this->assertResponseStatusCodeSame(401, $message ?? '');
+    }
+
+    /**
+     * Asserts that a value is a valid URL.
+     *
+     * @param mixed  $url     The value to validate
+     * @param string $message Optional custom assertion message
+     */
+    protected function assertValidUrl(mixed $url, string $message = 'Value should be a valid URL'): void
+    {
+        $this->assertIsString($url, $message);
+        $this->assertNotFalse(filter_var($url, \FILTER_VALIDATE_URL), $message);
     }
 }
