@@ -162,7 +162,7 @@ class BookmarkTest extends BaseApiTestCase
     {
         [, $token] = $this->createAuthenticatedUser('testuser', 'test');
 
-        // Use unexistant IRI (does not exist)
+        // Use nonexistent IRI (does not exist)
         $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
@@ -354,6 +354,55 @@ class BookmarkTest extends BaseApiTestCase
         ]);
     }
 
+    public function testEditBookmarkTitlePreservesTags(): void
+    {
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
+
+        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+
+        $bookmark = BookmarkFactory::createOne([
+            'owner' => $user,
+            'title' => 'Original Title',
+            'url' => 'https://example.com',
+            'tags' => new ArrayCollection([$tag1, $tag2, $tag3]),
+        ]);
+
+        // Verify initial tags
+        $this->request('GET', "/users/me/bookmarks/{$bookmark->id}", [
+            'auth_bearer' => $token,
+        ]);
+        $this->assertResponseIsSuccessful();
+        $initialJson = $this->getResponseArray();
+        $this->assertCount(3, $initialJson['tags']);
+        $initialTagSlugs = array_map(fn ($tag) => $tag['slug'], $initialJson['tags']);
+
+        // Edit only the title, without including tags in the request
+        $this->client->enableProfiler();
+        $this->request('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'title' => 'Updated Title',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        $json = $this->dump($this->getResponseArray());
+
+        // Verify title was updated
+        $this->assertEquals('Updated Title', $json['title']);
+        $this->assertEquals('https://example.com', $json['url']);
+
+        // Verify tags remain unchanged
+        $this->assertIsArray($json['tags']);
+        $this->assertCount(3, $json['tags'], 'Tags should remain unchanged when only title is edited');
+        $updatedTagSlugs = array_map(fn ($tag) => $tag['slug'], $json['tags']);
+        $this->assertEqualsCanonicalizing($initialTagSlugs, $updatedTagSlugs, 'Tag slugs should remain the same');
+        $this->assertBookmarkOwnerResponse($json);
+    }
+
     public function testDeleteOwnBookmark(): void
     {
         [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
@@ -521,6 +570,11 @@ class BookmarkTest extends BaseApiTestCase
             $expectedTitle = 'Bookmark ' . (120 - $i);
             $this->assertEquals($expectedTitle, $json['collection'][$i]['title'], "Entry at index {$i} should be {$expectedTitle}");
         }
+
+        // Verify nextPage is present and is an absolute URL
+        $this->assertArrayHasKey('nextPage', $json, 'nextPage should be present in response');
+        $this->assertNotNull($json['nextPage'], 'nextPage should not be null when there are more results');
+        $this->assertValidUrl($json['nextPage'], 'nextPage should be a valid absolute URL');
 
         // Get the last bookmark ID from the first page to use as cursor for the second page
         $lastBookmarkId = $json['collection'][23]['id'];

@@ -29,11 +29,7 @@ abstract class TagController extends AbstractController
         ;
 
         return $this->jsonResponseBuilder->collection(
-            $tags, $groups, [
-                'prevPage' => false,
-                'nextPage' => false,
-                'total' => \count($tags),
-            ]
+            $tags, $groups, ['total' => \count($tags)]
         );
     }
 }

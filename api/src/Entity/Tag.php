@@ -15,6 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[Context([DateTimeNormalizer::FORMAT_KEY => \DateTime::ATOM])]
 #[ORM\Entity(repositoryClass: TagRepository::class)]
+#[ORM\UniqueConstraint(name: 'unique_owner_slug', fields: ['owner', 'slug'])]
 class Tag
 {
     #[Ignore]

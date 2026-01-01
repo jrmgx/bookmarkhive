@@ -9,6 +9,7 @@ use App\Response\JsonResponseBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\ORMInvalidArgumentException;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,6 +31,39 @@ final class MeController extends AbstractController
     ) {
     }
 
+    #[OA\Get(
+        path: '/users/me',
+        tags: ['User'],
+        operationId: 'getCurrentUser',
+        summary: 'Get current user profile',
+        description: 'Returns the authenticated user\'s profile information including username, isPublic status, and meta data.',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Current user profile',
+                content: new OA\JsonContent(
+                    ref: '#/components/schemas/UserOwner',
+                    examples: [
+                        new OA\Examples(
+                            example: 'user_profile',
+                            value: [
+                                'username' => 'johndoe',
+                                'isPublic' => true,
+                                'meta' => ['theme' => 'dark', 'language' => 'en'],
+                                '@iri' => 'https://bookmarkhive.test/users/me',
+                            ],
+                            summary: 'Current user profile'
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized - authentication required'
+            ),
+        ]
+    )]
     #[Route(path: '', name: RouteAction::Get->value, methods: ['GET'])]
     public function get(
         #[CurrentUser] User $user,
@@ -37,6 +71,44 @@ final class MeController extends AbstractController
         return $this->jsonResponseBuilder->single($user, ['user:owner']);
     }
 
+    #[OA\Patch(
+        path: '/users/me',
+        tags: ['User'],
+        operationId: 'updateCurrentUser',
+        summary: 'Update current user profile',
+        description: 'Updates the authenticated user\'s profile. Username and password changes will invalidate existing JWT tokens. Meta data is merged, not replaced.',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: false,
+            description: 'User update data',
+            content: new OA\JsonContent(
+                type: 'object',
+                properties: [
+                    new OA\Property(property: 'username', type: 'string', minLength: 3, maxLength: 32, description: 'New username'),
+                    new OA\Property(property: 'password', type: 'string', minLength: 8, description: 'New password'),
+                    new OA\Property(property: 'isPublic', type: 'boolean', description: 'Whether the profile is public'),
+                    new OA\Property(property: 'meta', type: 'object', description: 'Additional metadata as key-value pairs (merged with existing)', additionalProperties: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'User profile updated successfully',
+                content: new OA\JsonContent(
+                    ref: '#/components/schemas/UserOwner'
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized - authentication required'
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation error - invalid data'
+            ),
+        ]
+    )]
     #[Route(path: '', name: RouteAction::Patch->value, methods: ['PATCH'])]
     public function patch(
         #[CurrentUser] User $user,
@@ -47,6 +119,7 @@ final class MeController extends AbstractController
         User $userPayload,
     ): JsonResponse {
         // Manual merge
+        // Meta is merge only
         $user->meta = array_merge($user->meta, $userPayload->meta);
 
         if (isset($userPayload->username) && $user->username !== $userPayload->username) {
@@ -79,6 +152,24 @@ final class MeController extends AbstractController
         return $this->jsonResponseBuilder->single($user, ['user:owner']);
     }
 
+    #[OA\Delete(
+        path: '/users/me',
+        tags: ['User'],
+        operationId: 'deleteCurrentUser',
+        summary: 'Delete current user account',
+        description: 'Permanently deletes the authenticated user\'s account and all associated data. After deletion, accessing GET /users/me will return 404.',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 204,
+                description: 'User account deleted successfully'
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized - authentication required'
+            ),
+        ]
+    )]
     #[Route(path: '', name: RouteAction::Delete->value, methods: ['DELETE'])]
     public function delete(
         #[CurrentUser] User $user,

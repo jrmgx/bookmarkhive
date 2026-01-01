@@ -12,6 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 abstract class BookmarkController extends AbstractController
 {
@@ -70,7 +71,7 @@ abstract class BookmarkController extends AbstractController
             if ($tagQueryString) {
                 $params['tags'] = $tagQueryString;
             }
-            $nextPage = $this->generateUrl($routeType->value . RouteAction::Collection->value, $params);
+            $nextPage = $this->generateUrl($routeType->value . RouteAction::Collection->value, $params, UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
         return $this->jsonResponseBuilder->collection(

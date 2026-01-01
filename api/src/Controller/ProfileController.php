@@ -7,6 +7,7 @@ use App\Config\RouteType;
 use App\Entity\User;
 use App\Response\JsonResponseBuilder;
 use App\Security\Voter\UserVoter;
+use OpenApi\Attributes as OA;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,6 +23,43 @@ final class ProfileController extends AbstractController
     ) {
     }
 
+    #[OA\Get(
+        path: '/profile/{username}',
+        tags: ['Profile'],
+        operationId: 'getPublicProfile',
+        summary: 'Get public user profile',
+        description: 'Returns the public profile information of a user. Only works if the user has set their profile as public.',
+        parameters: [
+            new OA\PathParameter(
+                name: 'username',
+                description: 'Username',
+                schema: new OA\Schema(type: 'string')
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Public user profile',
+                content: new OA\JsonContent(
+                    ref: '#/components/schemas/UserProfile',
+                    examples: [
+                        new OA\Examples(
+                            example: 'public_profile',
+                            value: [
+                                'username' => 'johndoe',
+                                '@iri' => 'https://bookmarkhive.test/profile/johndoe',
+                            ],
+                            summary: 'Public user profile'
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'User not found or profile is not public'
+            ),
+        ]
+    )]
     #[Route(path: '', name: RouteAction::Get->value, methods: ['GET'])]
     #[IsGranted(attribute: UserVoter::PUBLIC, subject: 'user', statusCode: Response::HTTP_NOT_FOUND)]
     public function get(

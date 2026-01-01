@@ -68,7 +68,7 @@ class Bookmark
 
     /** @var Collection<int, Tag>|array<int, Tag> */
     #[Groups(['bookmark:owner', 'bookmark:profile', 'bookmark:create'])]
-    #[ORM\ManyToMany(targetEntity: Tag::class)]
+    #[ORM\ManyToMany(targetEntity: Tag::class, fetch: 'EAGER')]
     public Collection|array $tags;
 
     #[ORM\Column]
@@ -82,6 +82,8 @@ class Bookmark
     public function __construct()
     {
         $this->id = Uuid::v7()->toString();
-        $this->tags = new ArrayCollection();
+        // We do not set tags here, so it can be unset when used as RequestPayload
+        // Still we will set it to empty in BookmarkNormalizer if needed
+        // $this->tags = new ArrayCollection();
     }
 }

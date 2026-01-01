@@ -103,6 +103,12 @@ function consume_messages(#[AsOption] int $limit = 100): void
     docker_compose_run("bin/console messenger:consume async -vvv --memory-limit=512M --time-limit=3600 --limit=$limit");
 }
 
+#[AsTask(description: 'Update the openapi definition file', aliases: ['openapi'])]
+function openapi(): void
+{
+    docker_compose_run("./vendor/bin/openapi src/Controller src/OpenApi --format json --output public/openapi.json");
+}
+
 /**
  * @param array<mixed> $params
  */
@@ -114,9 +120,8 @@ function builder(#[AsRawTokens] array $params = ['bash']): void
     }
 
     $c = context()
-        ->toInteractive()
-        ->withEnvironment($_ENV + $_SERVER)
-    ;
+        // ->toInteractive()
+        ->withEnvironment($_ENV + $_SERVER);
 
     docker_compose_run(implode(' ', $params), c: $c);
 }

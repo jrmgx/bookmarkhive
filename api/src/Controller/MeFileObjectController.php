@@ -10,6 +10,7 @@ use App\Naming\HashAndSubdirectories;
 use App\Response\JsonResponseBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\FilesystemOperator;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -34,12 +35,91 @@ final class MeFileObjectController extends AbstractController
     /**
      * Placeholder route for iri generation.
      */
+    #[OA\Get(
+        path: '/users/me/files/{id}',
+        tags: ['Files'],
+        operationId: 'getFileObject',
+        summary: 'Get file object (not supported)',
+        description: 'This endpoint is not supported. Use POST to upload files.',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\PathParameter(
+                name: 'id',
+                description: 'File object ID',
+                schema: new OA\Schema(type: 'string', format: 'uuid')
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 405,
+                description: 'Method not allowed - use POST to upload files'
+            ),
+        ]
+    )]
     #[Route(path: '/{id}', name: RouteAction::Get->value, methods: ['GET'])]
     public function get(): JsonResponse
     {
         throw new MethodNotAllowedHttpException(['POST']);
     }
 
+    #[OA\Post(
+        path: '/users/me/files',
+        tags: ['Files'],
+        operationId: 'uploadFile',
+        summary: 'Upload a file',
+        description: 'Uploads a file and returns a FileObject that can be referenced in bookmarks (mainImage, archive).',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: 'File to upload',
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    type: 'object',
+                    required: ['file'],
+                    properties: [
+                        new OA\Property(
+                            property: 'file',
+                            type: 'string',
+                            format: 'binary',
+                            description: 'File to upload'
+                        ),
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'File uploaded successfully',
+                content: new OA\JsonContent(
+                    ref: '#/components/schemas/FileObject',
+                    examples: [
+                        new OA\Examples(
+                            example: 'uploaded_file',
+                            value: [
+                                'id' => '01234567-89ab-cdef-0123-456789abcdef',
+                                'createdAt' => '2024-01-01T12:00:00+00:00',
+                                'contentUrl' => 'https://bookmarkhive.test/storage/files/abc123.jpg',
+                                'size' => 102400,
+                                'mime' => 'image/jpeg',
+                                '@iri' => 'https://bookmarkhive.test/users/me/files/01234567-89ab-cdef-0123-456789abcdef',
+                            ],
+                            summary: 'Successfully uploaded file'
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized - authentication required'
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation error - invalid file'
+            ),
+        ]
+    )]
     #[Route(path: '', name: RouteAction::Create->value, methods: ['POST'])]
     public function create(
         #[CurrentUser] User $user,
