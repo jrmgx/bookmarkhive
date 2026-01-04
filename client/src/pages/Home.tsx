@@ -4,7 +4,10 @@ import { Tag } from '../components/Tag/Tag';
 import { Bookmark } from '../components/Bookmark/Bookmark';
 import { Masonry } from '../components/Masonry/Masonry';
 import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
+import { SearchInput } from '../components/SearchInput/SearchInput';
 import { getBookmarks, getTags, getCursorFromUrl, ApiError } from '../services/api';
+import { indexAllBookmarks, getIndexedBookmarks, clearIndex } from '../services/bookmarkIndex';
+import { searchBookmarks } from '../services/search';
 import { toggleTag, updateTagParams } from '../utils/tags';
 import type { Bookmark as BookmarkType, Tag as TagType } from '../types';
 import { LAYOUT_DEFAULT, LAYOUT_IMAGE } from '../types';
@@ -29,11 +32,22 @@ export const Home = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [nextPage, setNextPage] = useState<string | null>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Search and indexing state
+  const [indexedBookmarks, setIndexedBookmarks] = useState<BookmarkType[]>([]);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [indexingProgress, setIndexingProgress] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<BookmarkType[] | null>(null);
+
   const tagQueryString = searchParams.get('tags') || '';
   const selectedTagSlugs = tagQueryString ? tagQueryString.split(',').filter(Boolean) : [];
   const selectedTags = tags.filter((tag) => selectedTagSlugs.includes(tag.slug));
   const layout = layoutForTags(selectedTags);
   const isLayoutImage = layout === LAYOUT_IMAGE;
+
+  // Determine which bookmarks to display
+  const displayBookmarks = searchQuery.trim() ? (searchResults || []) : bookmarks;
 
   // Load initial data
   const loadData = useCallback(async () => {
@@ -66,17 +80,90 @@ export const Home = () => {
     loadData();
   }, [loadData]);
 
-  // Listen for bookmarks updated event to refresh the list
+  // Index all bookmarks in the background
+  const startIndexing = useCallback(async () => {
+    // Check if already indexed
+    const existingIndex = getIndexedBookmarks();
+    if (existingIndex && existingIndex.length > 0) {
+      setIndexedBookmarks(existingIndex);
+      return;
+    }
+
+    setIsIndexing(true);
+    setIndexingProgress(0);
+
+    try {
+      const indexed = await indexAllBookmarks((progress) => {
+        setIndexingProgress(progress);
+      });
+      setIndexedBookmarks(indexed);
+    } catch (err: unknown) {
+      console.error('Failed to index bookmarks:', err);
+      // Don't show error to user, indexing is background operation
+    } finally {
+      setIsIndexing(false);
+    }
+  }, []);
+
+  // Listen for bookmarks updated event to refresh the list and re-index
   useEffect(() => {
     const handleBookmarksUpdated = () => {
       loadData();
+      // Clear and re-index bookmarks
+      clearIndex();
+      setIndexedBookmarks([]);
+      setIsIndexing(false);
+      setIndexingProgress(0);
+      // Start indexing again after a short delay
+      setTimeout(() => {
+        startIndexing();
+      }, 500);
     };
 
     window.addEventListener('bookmarksUpdated', handleBookmarksUpdated);
     return () => {
       window.removeEventListener('bookmarksUpdated', handleBookmarksUpdated);
     };
-  }, [loadData]);
+  }, [loadData, startIndexing]);
+
+  // Start indexing after initial data load
+  useEffect(() => {
+    if (!isLoading && bookmarks.length > 0) {
+      startIndexing();
+    }
+  }, [isLoading, startIndexing]);
+
+  // Handle search query changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+
+    if (indexedBookmarks.length === 0) {
+      // Try to load from localStorage if available
+      const stored = getIndexedBookmarks();
+      if (stored) {
+        setIndexedBookmarks(stored);
+        const results = searchBookmarks(searchQuery, stored);
+        setSearchResults(results);
+      } else {
+        setSearchResults([]);
+      }
+    } else {
+      const results = searchBookmarks(searchQuery, indexedBookmarks);
+      setSearchResults(results);
+    }
+  }, [searchQuery, indexedBookmarks]);
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleSearchClear = () => {
+    setSearchQuery('');
+    setSearchResults(null);
+  };
 
   const loadMoreBookmarks = useCallback(async () => {
     if (!nextPage || isLoadingMore) return;
@@ -138,55 +225,80 @@ export const Home = () => {
             <span className="visually-hidden">Loading...</span>
           </div>
         </div>
-      ) : bookmarks.length > 0 ? (
+      ) : (
         <>
-          {isLayoutImage ? (
-            <Masonry bookmarks={bookmarks} />
+          {/* Search Input */}
+          <SearchInput
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onClear={handleSearchClear}
+            disabled={isIndexing}
+            placeholder={
+              isIndexing
+                ? `Indexing... ${indexingProgress}%`
+                : 'Search bookmarks...'
+            }
+          />
+
+          {/* Bookmark List */}
+          {displayBookmarks.length > 0 ? (
+            <>
+              {isLayoutImage ? (
+                <Masonry bookmarks={displayBookmarks} />
+              ) : (
+                <div className="row gx-3">
+                  {displayBookmarks.map((bookmark) => (
+                    <Bookmark
+                      key={bookmark.id}
+                      bookmark={bookmark}
+                      layout={layout}
+                      selectedTagSlugs={selectedTagSlugs}
+                      onTagToggle={handleTagToggle}
+                      onShow={handleShow}
+                    />
+                  ))}
+                </div>
+              )}
+              {/* Show pagination only when not searching */}
+              {!searchQuery.trim() && nextPage && (
+                <div ref={observerTarget} className="text-center py-3">
+                  {isLoadingMore && (
+                    <div className="spinner-border" role="status">
+                      <span className="visually-hidden">Loading more...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
-            <div className="row gx-3">
-              {bookmarks.map((bookmark) => (
-                <Bookmark
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  layout={layout}
-                  selectedTagSlugs={selectedTagSlugs}
-                  onTagToggle={handleTagToggle}
-                  onShow={handleShow}
-                />
-              ))}
-            </div>
-          )}
-          {nextPage && (
-            <div ref={observerTarget} className="text-center py-3">
-              {isLoadingMore && (
-                <div className="spinner-border" role="status">
-                  <span className="visually-hidden">Loading more...</span>
+            <div className="row">
+              <div className="col-12 text-center pt-5">
+                <strong>
+                  {searchQuery.trim()
+                    ? 'No bookmarks found matching your search!'
+                    : 'No bookmark matching!'}
+                </strong>
+              </div>
+              {!searchQuery.trim() && (
+                <div className="col-12 text-center">
+                  <div className="d-flex my-2 flex-wrap justify-content-center gap-2 mx-auto" style={{ maxWidth: 'fit-content' }}>
+                    {tags
+                      .filter((tag) => selectedTagSlugs.includes(tag.slug))
+                      .map((tag) => (
+                        <Tag
+                          key={tag.slug}
+                          tag={tag}
+                          selectedTagSlugs={selectedTagSlugs}
+                          onToggle={handleTagToggle}
+                          className="flex-grow-0"
+                        />
+                      ))}
+                  </div>
                 </div>
               )}
             </div>
           )}
         </>
-      ) : (
-        <div className="row">
-          <div className="col-12 text-center pt-5">
-            <strong>No bookmark matching!</strong>
-          </div>
-          <div className="col-12 text-center">
-            <div className="d-flex my-2 flex-wrap justify-content-center gap-2 mx-auto" style={{ maxWidth: 'fit-content' }}>
-              {tags
-                .filter((tag) => selectedTagSlugs.includes(tag.slug))
-                .map((tag) => (
-                  <Tag
-                    key={tag.slug}
-                    tag={tag}
-                    selectedTagSlugs={selectedTagSlugs}
-                    onToggle={handleTagToggle}
-                    className="flex-grow-0"
-                  />
-                ))}
-            </div>
-          </div>
-        </div>
       )}
 
       <div className="mt-1">&nbsp;</div>
