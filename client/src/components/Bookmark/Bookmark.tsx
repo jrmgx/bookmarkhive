@@ -188,7 +188,7 @@ export const Bookmark = ({
           </div>
         )}
 
-        <div className={`card-body position-relative ${isEmbedded ? 'd-flex align-items-center' : ''}`}>
+        <div className={`card-body position-relative ${isEmbedded ? 'd-flex flex-column justify-content-start' : ''}`}>
           <div className={`card-title ${isEmbedded ? 'flex-grow-1 mb-0' : ''}`}>
             <a
               target="_blank"
@@ -203,7 +203,7 @@ export const Bookmark = ({
               {bookmark.title}
             </a>
           </div>
-          <div className="pt-1">
+          <div className={`${isEmbedded ? 'align-self-end pt-2' : 'pt-1'}`}>
             {sortedTags.map((tag) => {
               const isSelected = selectedTagSlugs.includes(tag.slug);
               return (

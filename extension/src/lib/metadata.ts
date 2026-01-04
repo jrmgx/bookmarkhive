@@ -20,16 +20,29 @@ function extractImageUrl(): string | null {
     // Try og:image
     const ogImage = document.querySelector('meta[property="og:image"]') as HTMLMetaElement | null;
     if (ogImage?.content) {
-        return ogImage.content;
+        try {
+            // Convert to absolute URL (handles both relative and absolute URLs)
+            // new URL() will use absolute URLs as-is, or resolve relative URLs against the base
+            return new URL(ogImage.content, window.location.href).href;
+        } catch {
+            // If URL parsing fails, return original content (might be invalid but worth trying)
+            return ogImage.content;
+        }
     }
 
     // Try twitter:image
     const twitterImage = document.querySelector('meta[name="twitter:image"]') as HTMLMetaElement | null;
     if (twitterImage?.content) {
-        return twitterImage.content;
+        try {
+            return new URL(twitterImage.content, window.location.href).href;
+        } catch {
+            return twitterImage.content;
+        }
     }
 
     // Try favicon
+    // Note: faviconLink.href is already resolved by the browser (always absolute),
+    // but we normalize it with new URL() for consistency
     const faviconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null ||
         document.querySelector('link[rel="shortcut icon"]') as HTMLLinkElement | null ||
         document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null;

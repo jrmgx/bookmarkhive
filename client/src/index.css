@@ -111,7 +111,7 @@ body {
 
 /* Bookmark image styles */
 .bookmark-img {
-  aspect-ratio: 4/3;
+  aspect-ratio: 1.91;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

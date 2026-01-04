@@ -62,10 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
             imageUrlInput.value = absoluteImageUrl;
             imageUrlLabel.style.display = 'none';
         } else {
-            // Hide preview, keep input hidden (only shown via manual button)
+            // Hide preview, show input and label when no image detected
             imagePreviewContainer.style.display = 'none';
-            imageUrlInput.style.display = 'none';
-            imageUrlLabel.style.display = 'none';
+            imageUrlInput.style.display = 'block';
+            imageUrlLabel.style.display = 'block';
         }
     }
 
@@ -117,10 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (pageData.image) {
                         updateImagePreview(pageData.image, pageData.url || '');
                     } else {
-                        // Hide preview, input, and label if no image
+                        // Show input and label if no image detected
                         if (imagePreviewContainer) imagePreviewContainer.style.display = 'none';
-                        if (imageUrlInput) imageUrlInput.style.display = 'none';
-                        if (imageUrlLabel) imageUrlLabel.style.display = 'none';
+                        if (imageUrlInput) imageUrlInput.style.display = 'block';
+                        if (imageUrlLabel) imageUrlLabel.style.display = 'block';
                     }
                 } else {
                     console.error('Failed to extract page data:', response);
