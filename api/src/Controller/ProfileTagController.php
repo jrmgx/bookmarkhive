@@ -5,15 +5,34 @@ namespace App\Controller;
 use App\Config\RouteAction;
 use App\Config\RouteType;
 use App\Entity\User;
+use App\Helper\RequestHelper;
+use App\Repository\TagRepository;
+use App\Response\JsonResponseBuilder;
+use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 #[Route(path: '/profile/{username}/tags', name: RouteType::ProfileTags->value)]
 final class ProfileTagController extends TagController
 {
+    public function __construct(
+        #[Autowire('%env(PREFERRED_CLIENT)%')]
+        private readonly string $preferredClient,
+        TagRepository $tagRepository,
+        EntityManagerInterface $entityManager,
+        JsonResponseBuilder $jsonResponseBuilder,
+    ) {
+        parent::__construct($tagRepository, $entityManager, $jsonResponseBuilder);
+    }
+
     #[OA\Get(
         path: '/profile/{username}/tags',
         tags: ['Profile'],
@@ -77,10 +96,39 @@ final class ProfileTagController extends TagController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Public tag details',
-                content: new OA\JsonContent(
-                    ref: '#/components/schemas/TagProfile'
-                )
+                description: 'Public tag details. Returns JSON by default (Accept: application/json) or HTML redirect (Accept: text/html).',
+                content: [
+                    new OA\MediaType(
+                        mediaType: 'application/json',
+                        schema: new OA\Schema(ref: '#/components/schemas/TagProfile')
+                    ),
+                    new OA\MediaType(
+                        mediaType: 'text/html',
+                        schema: new OA\Schema(
+                            type: 'string',
+                            description: 'HTML redirect response'
+                        )
+                    ),
+                ],
+                headers: [
+                    new OA\Header(
+                        header: 'Location',
+                        description: 'Redirect URL (when Accept: text/html)',
+                        schema: new OA\Schema(type: 'string', format: 'uri', example: 'https://bookmarkhive.net/profile/username/tags/tag-slug'),
+                        required: false
+                    ),
+                ]
+            ),
+            new OA\Response(
+                response: 301,
+                description: 'Redirect response (when Accept: text/html)',
+                headers: [
+                    new OA\Header(
+                        header: 'Location',
+                        description: 'Redirect URL',
+                        schema: new OA\Schema(type: 'string', format: 'uri', example: 'https://bookmarkhive.net/profile/username/tags/tag-slug')
+                    ),
+                ]
             ),
             new OA\Response(
                 response: 404,
@@ -90,14 +138,24 @@ final class ProfileTagController extends TagController
     )]
     #[Route(path: '/{slug}', name: RouteAction::Get->value, methods: ['GET'])]
     public function get(
+        Request $request,
         #[MapEntity(mapping: ['username' => 'username'])] User $user,
         string $slug,
-    ): JsonResponse {
-        $tag = $this->tagRepository->findOneByOwnerAndSlug($user, $slug, onlyPublic: true)
-            ->getQuery()->getOneOrNullResult()
-            ?? throw new NotFoundHttpException()
-        ;
+    ): Response {
+        if (RequestHelper::accepts($request, 'application/json')) {
+            $tag = $this->tagRepository->findOneByOwnerAndSlug($user, $slug, onlyPublic: true)
+                ->getQuery()->getOneOrNullResult()
+                ?? throw new NotFoundHttpException()
+            ;
 
-        return $this->jsonResponseBuilder->single($tag, ['tag:show:public']);
+            return $this->jsonResponseBuilder->single($tag, ['tag:show:public']);
+        }
+
+        $iri = $this->generateUrl(RouteType::ProfileTags->value . RouteAction::Get->value, [
+            'slug' => $slug,
+            'username' => $user->username,
+        ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+        return new RedirectResponse($this->preferredClient . "?iri={$iri}");
     }
 }

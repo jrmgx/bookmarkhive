@@ -833,6 +833,39 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertEquals('Bookmark To Delete', $json['title'], 'Bookmark should still exist after failed deletion attempt');
     }
 
+    public function testGetPublicBookmarkWithHtmlAcceptRedirects(): void
+    {
+        $user = UserFactory::createOne([
+            'username' => 'testuser',
+            'isPublic' => true,
+        ]);
+
+        $bookmark = BookmarkFactory::createOne([
+            'owner' => $user,
+            'title' => 'Public Bookmark',
+            'url' => 'https://example.com',
+            'isPublic' => true,
+        ]);
+
+        $this->request('GET', "/profile/{$user->username}/bookmarks/{$bookmark->id}", [
+            'headers' => ['Accept' => 'text/html'],
+        ]);
+        $this->assertResponseStatusCodeSame(302, 'GET request with Accept: text/html should return 302 redirect');
+        $this->assertTrue($this->client->getResponse()->isRedirect(), 'Response should be a redirect');
+
+        $location = $this->client->getResponse()->headers->get('Location');
+        $this->assertNotEmpty($location, 'Location header should be present');
+        $this->assertStringContainsString('?iri=', $location, 'Location URL should contain iri query parameter');
+
+        // Parse the URL and verify the iri parameter is an absolute URL
+        $parsedUrl = parse_url($location);
+        $this->assertIsArray($parsedUrl, 'Location should be a valid URL');
+        $this->assertArrayHasKey('query', $parsedUrl, 'Location URL should have query parameters');
+        parse_str($parsedUrl['query'], $queryParams);
+        $this->assertArrayHasKey('iri', $queryParams, 'Query parameters should contain iri');
+        $this->assertStringStartsWith('http://', $queryParams['iri'], 'iri parameter should be an absolute URL starting with http://');
+    }
+
     #[DataProvider('domainExtractionProvider')]
     public function testDomainExtractionFromUrl(string $url, string $expectedDomain): void
     {

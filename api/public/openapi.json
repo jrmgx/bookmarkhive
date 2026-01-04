@@ -1387,11 +1387,41 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Public bookmark details",
+                        "description": "Bookmark details. Returns JSON by default (Accept: application/json) or HTML redirect (Accept: text/html).",
+                        "headers": {
+                            "Location": {
+                                "description": "Redirect URL (when Accept: text/html)",
+                                "required": false,
+                                "schema": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "example": "https://bookmarkhive.net/profile/username/bookmarks/id"
+                                }
+                            }
+                        },
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/BookmarkProfile"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "description": "HTML redirect response",
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "301": {
+                        "description": "Redirect response (when Accept: text/html)",
+                        "headers": {
+                            "Location": {
+                                "description": "Redirect URL",
+                                "schema": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "example": "https://bookmarkhive.net/profile/username/bookmarks/id"
                                 }
                             }
                         }
@@ -1423,7 +1453,18 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Public user profile",
+                        "description": "Public user profile. Returns JSON by default (Accept: application/json) or HTML redirect (Accept: text/html).",
+                        "headers": {
+                            "Location": {
+                                "description": "Redirect URL (when Accept: text/html)",
+                                "required": false,
+                                "schema": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "example": "https://bookmarkhive.net/profile/username"
+                                }
+                            }
+                        },
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1437,6 +1478,25 @@
                                             "@iri": "https://bookmarkhive.test/profile/johndoe"
                                         }
                                     }
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "description": "HTML redirect response",
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "301": {
+                        "description": "Redirect response (when Accept: text/html)",
+                        "headers": {
+                            "Location": {
+                                "description": "Redirect URL",
+                                "schema": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "example": "https://bookmarkhive.net/profile/username"
                                 }
                             }
                         }
@@ -1524,11 +1584,41 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Public tag details",
+                        "description": "Public tag details. Returns JSON by default (Accept: application/json) or HTML redirect (Accept: text/html).",
+                        "headers": {
+                            "Location": {
+                                "description": "Redirect URL (when Accept: text/html)",
+                                "required": false,
+                                "schema": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "example": "https://bookmarkhive.net/profile/username/tags/tag-slug"
+                                }
+                            }
+                        },
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/TagProfile"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "description": "HTML redirect response",
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "301": {
+                        "description": "Redirect response (when Accept: text/html)",
+                        "headers": {
+                            "Location": {
+                                "description": "Redirect URL",
+                                "schema": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "example": "https://bookmarkhive.net/profile/username/tags/tag-slug"
                                 }
                             }
                         }

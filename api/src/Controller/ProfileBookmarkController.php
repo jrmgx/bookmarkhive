@@ -5,12 +5,17 @@ namespace App\Controller;
 use App\Config\RouteAction;
 use App\Config\RouteType;
 use App\Entity\User;
+use App\Helper\RequestHelper;
 use OpenApi\Attributes as OA;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 #[Route(path: '/profile/{username}/bookmarks', name: RouteType::ProfileBookmarks->value)]
 final class ProfileBookmarkController extends BookmarkController
@@ -107,10 +112,39 @@ final class ProfileBookmarkController extends BookmarkController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Public bookmark details',
-                content: new OA\JsonContent(
-                    ref: '#/components/schemas/BookmarkProfile'
-                )
+                description: 'Bookmark details. Returns JSON by default (Accept: application/json) or HTML redirect (Accept: text/html).',
+                content: [
+                    new OA\MediaType(
+                        mediaType: 'application/json',
+                        schema: new OA\Schema(ref: '#/components/schemas/BookmarkProfile')
+                    ),
+                    new OA\MediaType(
+                        mediaType: 'text/html',
+                        schema: new OA\Schema(
+                            type: 'string',
+                            description: 'HTML redirect response'
+                        )
+                    ),
+                ],
+                headers: [
+                    new OA\Header(
+                        header: 'Location',
+                        description: 'Redirect URL (when Accept: text/html)',
+                        schema: new OA\Schema(type: 'string', format: 'uri', example: 'https://bookmarkhive.net/profile/username/bookmarks/id'),
+                        required: false
+                    ),
+                ]
+            ),
+            new OA\Response(
+                response: 301,
+                description: 'Redirect response (when Accept: text/html)',
+                headers: [
+                    new OA\Header(
+                        header: 'Location',
+                        description: 'Redirect URL',
+                        schema: new OA\Schema(type: 'string', format: 'uri', example: 'https://bookmarkhive.net/profile/username/bookmarks/id')
+                    ),
+                ]
             ),
             new OA\Response(
                 response: 404,
@@ -120,14 +154,24 @@ final class ProfileBookmarkController extends BookmarkController
     )]
     #[Route(path: '/{id}', name: RouteAction::Get->value, methods: ['GET'])]
     public function get(
+        Request $request,
         #[MapEntity(mapping: ['username' => 'username'])] User $user,
         string $id,
-    ): JsonResponse {
-        $bookmark = $this->bookmarkRepository->findOneByOwnerAndId($user, $id, onlyPublic: true)
-            ->getQuery()->getOneOrNullResult()
-            ?? throw new NotFoundHttpException()
-        ;
+    ): Response {
+        if (RequestHelper::accepts($request, 'application/json')) {
+            $bookmark = $this->bookmarkRepository->findOneByOwnerAndId($user, $id, onlyPublic: true)
+                ->getQuery()->getOneOrNullResult()
+                ?? throw new NotFoundHttpException()
+            ;
 
-        return $this->jsonResponseBuilder->single($bookmark, ['bookmark:show:public', 'tag:show:public']);
+            return $this->jsonResponseBuilder->single($bookmark, ['bookmark:show:public', 'tag:show:public']);
+        }
+
+        $iri = $this->generateUrl(RouteType::ProfileBookmarks->value . RouteAction::Get->value, [
+            'id' => $id,
+            'username' => $user->username,
+        ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+        return new RedirectResponse($this->preferredClient . "?iri={$iri}");
     }
 }

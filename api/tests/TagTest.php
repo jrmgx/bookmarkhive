@@ -447,6 +447,38 @@ class TagTest extends BaseApiTestCase
         $this->assertEquals('Tag To Delete', $json['name'], 'Tag should still exist after failed deletion attempt');
     }
 
+    public function testGetPublicTagWithHtmlAcceptRedirects(): void
+    {
+        $user = UserFactory::createOne([
+            'username' => 'testuser',
+            'isPublic' => true,
+        ]);
+
+        $tag = TagFactory::createOne([
+            'owner' => $user,
+            'name' => 'Public Tag',
+            'isPublic' => true,
+        ]);
+
+        $this->request('GET', "/profile/{$user->username}/tags/{$tag->slug}", [
+            'headers' => ['Accept' => 'text/html'],
+        ]);
+        $this->assertResponseStatusCodeSame(302, 'GET request with Accept: text/html should return 302 redirect');
+        $this->assertTrue($this->client->getResponse()->isRedirect(), 'Response should be a redirect');
+
+        $location = $this->client->getResponse()->headers->get('Location');
+        $this->assertNotEmpty($location, 'Location header should be present');
+        $this->assertStringContainsString('?iri=', $location, 'Location URL should contain iri query parameter');
+
+        // Parse the URL and verify the iri parameter is an absolute URL
+        $parsedUrl = parse_url($location);
+        $this->assertIsArray($parsedUrl, 'Location should be a valid URL');
+        $this->assertArrayHasKey('query', $parsedUrl, 'Location URL should have query parameters');
+        parse_str($parsedUrl['query'], $queryParams);
+        $this->assertArrayHasKey('iri', $queryParams, 'Query parameters should contain iri');
+        $this->assertStringStartsWith('http://', $queryParams['iri'], 'iri parameter should be an absolute URL starting with http://');
+    }
+
     private function assertOtherUserCannotAccess(string $method, string $url, array $options = []): void
     {
         [, $otherToken] = $this->createAuthenticatedUser('otheruser', 'test');

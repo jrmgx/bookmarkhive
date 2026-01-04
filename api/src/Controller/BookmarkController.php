@@ -10,6 +10,7 @@ use App\Repository\BookmarkRepository;
 use App\Response\JsonResponseBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -17,6 +18,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 abstract class BookmarkController extends AbstractController
 {
     public function __construct(
+        #[Autowire('%env(PREFERRED_CLIENT)%')]
+        protected readonly string $preferredClient,
         protected readonly BookmarkRepository $bookmarkRepository,
         protected readonly EntityManagerInterface $entityManager,
         protected readonly JsonResponseBuilder $jsonResponseBuilder,

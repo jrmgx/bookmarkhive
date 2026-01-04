@@ -39,6 +39,7 @@ class Tag
     #[ORM\Column(length: 32)]
     public private(set) string $slug;
 
+    // TODO not sure we need that exposed
     #[Groups(['tag:show:private'])]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
