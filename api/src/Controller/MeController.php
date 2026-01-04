@@ -124,7 +124,7 @@ final class MeController extends AbstractController
         #[CurrentUser] User $user,
         #[MapRequestPayload(
             serializationContext: ['groups' => ['user:update']],
-            validationGroups: ['Default'],
+            validationGroups: ['Default', 'user:update'],
         )]
         User $userPayload,
     ): JsonResponse {

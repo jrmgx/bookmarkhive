@@ -54,7 +54,7 @@ class TagTest extends BaseApiTestCase
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
             'json' => [
-                'name' => '🎸',
+                'name' => 'Force',
                 'slug' => 'force-slug', // Forbidden, ignore
             ],
         ]);
@@ -62,9 +62,19 @@ class TagTest extends BaseApiTestCase
 
         $json = $this->getResponseArray();
 
-        $this->assertEquals('🎸', $json['name']);
-        $this->assertEquals('guitar', $json['slug']);
+        $this->assertEquals('Force', $json['name']);
+        $this->assertEquals('force', $json['slug']);
         $this->assertTagOwnerResponse($json);
+
+        $this->client->enableProfiler();
+        $this->request('POST', '/users/me/tags', [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'name' => '🎸',
+            ],
+        ]);
+        $this->assertResponseStatusCodeSame(422);
     }
 
     public function testCreateTagWithSameNameReturnsExisting(): void

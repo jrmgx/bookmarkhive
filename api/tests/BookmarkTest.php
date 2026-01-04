@@ -403,6 +403,57 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertBookmarkOwnerResponse($json);
     }
 
+    public function testEditBookmarkTagsOnly(): void
+    {
+        [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');
+
+        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+
+        $bookmark = BookmarkFactory::createOne([
+            'owner' => $user,
+            'title' => 'Original Title',
+            'url' => 'https://example.com',
+            'tags' => new ArrayCollection([$tag1, $tag2]),
+        ]);
+
+        $this->request('GET', "/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
+        $this->assertResponseIsSuccessful();
+        $initialJson = $this->getResponseArray();
+        $initialTitle = $initialJson['title'];
+        $initialUrl = $initialJson['url'];
+        $initialTagSlugs = array_map(fn ($tag) => $tag['slug'], $initialJson['tags']);
+
+        // Update only tags
+        $this->request('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
+            'headers' => ['Content-Type' => 'application/json'],
+            'auth_bearer' => $token,
+            'json' => [
+                'tags' => [
+                    "/users/me/tags/{$tag2->slug}",
+                    "/users/me/tags/{$tag3->slug}",
+                ],
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        $json = $this->dump($this->getResponseArray());
+
+        // Verify tags were updated
+        $this->assertIsArray($json['tags']);
+        $this->assertCount(2, $json['tags'], 'Tags should be updated');
+        $updatedTagSlugs = array_map(fn ($tag) => $tag['slug'], $json['tags']);
+        $this->assertContains($tag2->slug, $updatedTagSlugs, 'Tag 2 should be present');
+        $this->assertContains($tag3->slug, $updatedTagSlugs, 'Tag 3 should be present');
+        $this->assertNotContains($tag1->slug, $updatedTagSlugs, 'Tag 1 should be removed');
+
+        // Verify other fields remained unchanged
+        $this->assertEquals($initialTitle, $json['title'], 'Title should remain unchanged');
+        $this->assertEquals($initialUrl, $json['url'], 'URL should remain unchanged');
+        $this->assertBookmarkOwnerResponse($json);
+    }
+
     public function testDeleteOwnBookmark(): void
     {
         [$user, $token] = $this->createAuthenticatedUser('testuser', 'test');

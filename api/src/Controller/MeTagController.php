@@ -198,7 +198,7 @@ final class MeTagController extends TagController
         #[CurrentUser] User $user,
         #[MapRequestPayload(
             serializationContext: ['groups' => ['tag:create']],
-            validationGroups: ['Default'],
+            validationGroups: ['Default', 'tag:create'],
         )]
         Tag $tag,
     ): JsonResponse {
@@ -294,7 +294,7 @@ final class MeTagController extends TagController
         #[MapEntity(mapping: ['slug' => 'slug'])] Tag $tag,
         #[MapRequestPayload(
             serializationContext: ['groups' => ['tag:update']],
-            validationGroups: ['Default'],
+            validationGroups: ['Default', 'tag:update'],
         )]
         Tag $tagPayload,
     ): JsonResponse {

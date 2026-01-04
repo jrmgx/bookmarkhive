@@ -30,7 +30,7 @@ class Bookmark
     }
 
     #[Groups(['bookmark:show:public', 'bookmark:create', 'bookmark:update', 'bookmark:show:private'])]
-    #[Assert\NotBlank(groups: ['bookmark:create', 'bookmark:update'])]
+    #[Assert\NotBlank(groups: ['bookmark:create'])]
     #[ORM\Column(type: Types::TEXT)]
     public string $title;
 

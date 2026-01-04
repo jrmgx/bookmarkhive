@@ -199,7 +199,7 @@ final class MeBookmarkController extends BookmarkController
         #[CurrentUser] User $user,
         #[MapRequestPayload(
             serializationContext: ['groups' => ['bookmark:create']],
-            validationGroups: ['Default'],
+            validationGroups: ['Default', 'bookmark:create'],
         )]
         Bookmark $bookmark,
     ): JsonResponse {
@@ -392,7 +392,7 @@ final class MeBookmarkController extends BookmarkController
         Bookmark $bookmark,
         #[MapRequestPayload(
             serializationContext: ['groups' => ['bookmark:update']],
-            validationGroups: ['Default'],
+            validationGroups: ['Default', 'bookmark:update'],
         )]
         Bookmark $bookmarkPayload,
     ): JsonResponse {

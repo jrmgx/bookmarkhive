@@ -27,7 +27,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public private(set) string $id;
 
     #[Groups(['user:show:public', 'user:create', 'user:show:private', 'bookmark:show:public', 'bookmark:show:private', 'user:update'])]
-    #[Assert\NotBlank(groups: ['user:create', 'user:update'])]
+    #[Assert\NotBlank(groups: ['user:create'])]
     #[Assert\Length(min: 3, max: 32)]
     #[ORM\Column(length: 32, unique: true)]
     public string $username {

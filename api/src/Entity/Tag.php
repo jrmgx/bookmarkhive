@@ -23,7 +23,7 @@ class Tag
     public private(set) string $id;
 
     #[Groups(['tag:show:public', 'tag:create', 'tag:show:private', 'tag:update'])]
-    #[Assert\NotBlank(groups: ['tag:create', 'tag:update'])]
+    #[Assert\NotBlank(groups: ['tag:create'])]
     #[Assert\Length(max: 32)]
     #[ORM\Column(length: 32)]
     public string $name {
@@ -34,7 +34,7 @@ class Tag
     }
 
     #[Groups(['tag:show:public', 'tag:show:private'])]
-    #[Assert\NotBlank(groups: ['tag:create', 'tag:update'])]
+    #[Assert\NotBlank(groups: ['tag:create'])]
     #[Assert\Length(max: 32)]
     #[ORM\Column(length: 32)]
     public private(set) string $slug;
@@ -60,7 +60,7 @@ class Tag
 
     private static function slugger(string $name): string
     {
-        $slugger = new AsciiSlugger('en')->withEmoji();
+        $slugger = new AsciiSlugger('en');
 
         return mb_strtolower($slugger->slug($name));
     }
