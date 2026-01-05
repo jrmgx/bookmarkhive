@@ -8,7 +8,17 @@ import { Styleguide } from './pages/Styleguide';
 import { Layout } from './components/Layout/Layout';
 import { IriRedirect } from './components/IriRedirect/IriRedirect';
 import { isAuthenticated } from './services/auth';
+import { forceReindex } from './services/bookmarkIndex';
 import './App.css';
+
+// Expose forceReindex globally for console access
+declare global {
+  interface Window {
+    forceReindex: typeof forceReindex;
+  }
+}
+
+window.forceReindex = forceReindex;
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!isAuthenticated()) {

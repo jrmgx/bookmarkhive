@@ -16,6 +16,7 @@ import type {
   Tag,
   ApiTag,
   FileObject,
+  BookmarkIndexDiffResponse,
 } from '../types';
 import { ApiError } from './error';
 import type { ApiConfig } from './config';
@@ -31,6 +32,8 @@ export interface ApiClient {
 
   // Bookmarks
   getBookmarks(tags?: string, after?: string): Promise<BookmarksResponse>;
+  getBookmarksIndex(after?: string): Promise<BookmarksResponse>;
+  getBookmarkIndexDiff(before?: string): Promise<BookmarkIndexDiffResponse>;
   getBookmark(id: string): Promise<Bookmark | null>;
   getBookmarkHistory(id: string): Promise<BookmarksResponse>;
   createBookmark(payload: BookmarkCreate): Promise<BookmarkOwner>;
@@ -204,6 +207,65 @@ export function createApiClient(config: ApiConfig): ApiClient {
         prevPage: data.prevPage,
         total: data.total,
       };
+    },
+
+    /**
+     * Gets paginated bookmarks for client-side indexing (more performant)
+     * Uses the /index endpoint which is optimized for bulk fetching
+     */
+    async getBookmarksIndex(after?: string): Promise<BookmarksResponse> {
+      let url = `${baseUrl}/users/me/bookmarks/search/index`;
+      if (after) {
+        url += `?after=${encodeURIComponent(after)}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: await getAuthHeaders(),
+      });
+
+      const data = await handleResponse<{
+        collection: BookmarkOwner[];
+        nextPage: string | null;
+        prevPage: string | null;
+        total: number | null;
+      }>(response);
+
+      if (!data.collection) {
+        throw new ApiError('Bookmarks collection not found.', 500);
+      }
+
+      // Transform tags within each bookmark
+      const bookmarks: Bookmark[] = data.collection.map((bookmark) => ({
+        ...bookmark,
+        tags: bookmark.tags ? bookmark.tags.map(transformTagFromApi) : [],
+      }));
+
+      return {
+        collection: bookmarks,
+        nextPage: data.nextPage,
+        prevPage: data.prevPage,
+        total: data.total,
+      };
+    },
+
+    /**
+     * Gets bookmark index changes (diff) for syncing client-side index
+     * @param before Cursor for pagination - index action ID to fetch results after
+     * @returns Collection of bookmark index actions
+     */
+    async getBookmarkIndexDiff(before?: string): Promise<BookmarkIndexDiffResponse> {
+      let url = `${baseUrl}/users/me/bookmarks/search/diff`;
+      if (before) {
+        url += `?before=${encodeURIComponent(before)}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: await getAuthHeaders(),
+      });
+
+      return handleResponse<BookmarkIndexDiffResponse>(response);
     },
 
     /**

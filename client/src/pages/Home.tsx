@@ -6,7 +6,7 @@ import { Masonry } from '../components/Masonry/Masonry';
 import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
 import { SearchInput } from '../components/SearchInput/SearchInput';
 import { getBookmarks, getTags, getCursorFromUrl, ApiError } from '../services/api';
-import { indexAllBookmarks, getIndexedBookmarks, clearIndex } from '../services/bookmarkIndex';
+import { indexAllBookmarks, getIndexedBookmarks, syncBookmarkIndex, isSearchAvailable } from '../services/bookmarkIndex';
 import { searchBookmarks } from '../services/search';
 import { toggleTag, updateTagParams } from '../utils/tags';
 import type { Bookmark as BookmarkType, Tag as TagType } from '../types';
@@ -38,7 +38,9 @@ export const Home = () => {
   const [isIndexing, setIsIndexing] = useState(false);
   const [indexingProgress, setIndexingProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<BookmarkType[] | null>(null);
+  const [searchAvailable, setSearchAvailable] = useState(false);
 
   const tagQueryString = searchParams.get('tags') || '';
   const selectedTagSlugs = tagQueryString ? tagQueryString.split(',').filter(Boolean) : [];
@@ -47,7 +49,7 @@ export const Home = () => {
   const isLayoutImage = layout === LAYOUT_IMAGE;
 
   // Determine which bookmarks to display
-  const displayBookmarks = searchQuery.trim() ? (searchResults || []) : bookmarks;
+  const displayBookmarks = debouncedSearchQuery.trim() ? (searchResults || []) : bookmarks;
 
   // Load initial data
   const loadData = useCallback(async () => {
@@ -80,12 +82,26 @@ export const Home = () => {
     loadData();
   }, [loadData]);
 
+  // Check if search is available on mount
+  useEffect(() => {
+    setSearchAvailable(isSearchAvailable());
+  }, []);
+
   // Index all bookmarks in the background
   const startIndexing = useCallback(async () => {
+    // Skip indexing if IndexedDB is not available
+    if (!isSearchAvailable()) {
+      return;
+    }
+
     // Check if already indexed
     const existingIndex = await getIndexedBookmarks();
     if (existingIndex && existingIndex.length > 0) {
       setIndexedBookmarks(existingIndex);
+      // Try to sync in the background
+      syncBookmarkIndex().catch((err) => {
+        console.error('Failed to sync bookmark index:', err);
+      });
       return;
     }
 
@@ -105,26 +121,34 @@ export const Home = () => {
     }
   }, []);
 
-  // Listen for bookmarks updated event to refresh the list and re-index
+  // Listen for bookmarks updated event to refresh the list
+  // Note: We no longer invalidate the index, sync will handle updates
   useEffect(() => {
     const handleBookmarksUpdated = async () => {
       loadData();
-      // Clear and re-index bookmarks
-      await clearIndex();
-      setIndexedBookmarks([]);
-      setIsIndexing(false);
-      setIndexingProgress(0);
-      // Start indexing again after a short delay
-      setTimeout(() => {
-        startIndexing();
-      }, 500);
+      // Wait a bit for the server to process the update and create the index action
+      // Then try to sync the index in the background
+      setTimeout(async () => {
+        try {
+          const synced = await syncBookmarkIndex();
+          if (synced) {
+            // Reload indexed bookmarks if sync was successful
+            const updatedIndex = await getIndexedBookmarks();
+            if (updatedIndex) {
+              setIndexedBookmarks(updatedIndex);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to sync bookmark index after update:', err);
+        }
+      }, 1000); // Wait 1 second for server to process
     };
 
     window.addEventListener('bookmarksUpdated', handleBookmarksUpdated);
     return () => {
       window.removeEventListener('bookmarksUpdated', handleBookmarksUpdated);
     };
-  }, [loadData, startIndexing]);
+  }, [loadData]);
 
   // Start indexing after initial data load
   useEffect(() => {
@@ -133,32 +157,74 @@ export const Home = () => {
     }
   }, [isLoading, startIndexing]);
 
-  // Handle search query changes
+  // Sync check - sync index once per hour
   useEffect(() => {
-    if (!searchQuery.trim()) {
+    if (!isSearchAvailable()) {
+      return;
+    }
+
+    const checkAndSync = async () => {
+      const existingIndex = await getIndexedBookmarks();
+      if (existingIndex && existingIndex.length > 0) {
+        // Try to sync
+        syncBookmarkIndex().catch((err) => {
+          console.error('Failed to sync bookmark index:', err);
+        });
+      }
+    };
+
+    // Run sync check on mount
+    checkAndSync();
+
+    const dailyInterval = setInterval(checkAndSync, 60 * 60 * 1000); // 1 hour
+
+    return () => {
+      clearInterval(dailyInterval);
+    };
+  }, []);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300); // 300ms debounce delay
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
+  // Handle search query changes (using debounced query)
+  useEffect(() => {
+    if (!searchAvailable) {
+      setSearchResults(null);
+      return;
+    }
+
+    if (!debouncedSearchQuery.trim()) {
       setSearchResults(null);
       return;
     }
 
     const performSearch = async () => {
       if (indexedBookmarks.length === 0) {
-        // Try to load from IndexedDB/localStorage if available
+        // Try to load from IndexedDB if available
         const stored = await getIndexedBookmarks();
         if (stored) {
           setIndexedBookmarks(stored);
-          const results = searchBookmarks(searchQuery, stored);
+          const results = searchBookmarks(debouncedSearchQuery, stored);
           setSearchResults(results);
         } else {
           setSearchResults([]);
         }
       } else {
-        const results = searchBookmarks(searchQuery, indexedBookmarks);
+        const results = searchBookmarks(debouncedSearchQuery, indexedBookmarks);
         setSearchResults(results);
       }
     };
 
     performSearch();
-  }, [searchQuery, indexedBookmarks]);
+  }, [debouncedSearchQuery, indexedBookmarks, searchAvailable]);
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
@@ -232,17 +298,19 @@ export const Home = () => {
       ) : (
         <>
           {/* Search Input */}
-          <SearchInput
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onClear={handleSearchClear}
-            disabled={isIndexing}
-            placeholder={
-              isIndexing
-                ? `Indexing... ${indexingProgress}%`
-                : 'Search bookmarks...'
-            }
-          />
+          {searchAvailable && (
+            <SearchInput
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onClear={handleSearchClear}
+              disabled={isIndexing}
+              placeholder={
+                isIndexing
+                  ? `Indexing... ${indexingProgress}%`
+                  : 'Search bookmarks...'
+              }
+            />
+          )}
 
           {/* Bookmark List */}
           {displayBookmarks.length > 0 ? (
@@ -264,7 +332,7 @@ export const Home = () => {
                 </div>
               )}
               {/* Show pagination only when not searching */}
-              {!searchQuery.trim() && nextPage && (
+              {!debouncedSearchQuery.trim() && nextPage && (
                 <div ref={observerTarget} className="text-center py-3">
                   {isLoadingMore && (
                     <div className="spinner-border" role="status">
@@ -278,12 +346,12 @@ export const Home = () => {
             <div className="row">
               <div className="col-12 text-center pt-5">
                 <strong>
-                  {searchQuery.trim()
+                  {debouncedSearchQuery.trim()
                     ? 'No bookmarks found matching your search!'
                     : 'No bookmark matching!'}
                 </strong>
               </div>
-              {!searchQuery.trim() && (
+              {!debouncedSearchQuery.trim() && (
                 <div className="col-12 text-center">
                   <div className="d-flex my-2 flex-wrap justify-content-center gap-2 mx-auto" style={{ maxWidth: 'fit-content' }}>
                     {tags

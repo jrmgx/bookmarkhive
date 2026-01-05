@@ -79,6 +79,23 @@ export const getBookmarks = async (tags?: string, after?: string): Promise<Bookm
 };
 
 /**
+ * Get paginated bookmarks for client-side indexing (more performant)
+ * Uses the /index endpoint which is optimized for bulk fetching
+ */
+export const getBookmarksIndex = async (after?: string): Promise<BookmarksResponse> => {
+  const client = await getOrCreateApiClient();
+  return client.getBookmarksIndex(after);
+};
+
+/**
+ * Get bookmark index changes (diff) for syncing client-side index
+ */
+export const getBookmarkIndexDiff = async (before?: string) => {
+  const client = await getOrCreateApiClient();
+  return client.getBookmarkIndexDiff(before);
+};
+
+/**
  * Get a single bookmark by ID
  */
 export const getBookmark = async (id: string): Promise<Bookmark | null> => {

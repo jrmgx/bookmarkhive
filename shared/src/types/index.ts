@@ -282,3 +282,29 @@ export const LAYOUT_DEFAULT = 'default';
 export const LAYOUT_EMBEDDED = 'embedded';
 export const LAYOUT_IMAGE = 'image';
 
+// ============================================================================
+// Bookmark Index Action Types
+// ============================================================================
+
+/**
+ * BookmarkIndexActionType - Type of action performed on a bookmark
+ */
+export type BookmarkIndexActionType = 'created' | 'updated' | 'deleted' | 'outdated';
+
+/**
+ * BookmarkIndexAction - Represents a change to a bookmark
+ */
+export interface BookmarkIndexAction {
+  id: string; // UUID
+  createdAt: string; // ISO date-time string
+  type: BookmarkIndexActionType;
+  bookmark: string; // Bookmark ID (UUID)
+}
+
+/**
+ * BookmarkIndexDiffResponse - API response for bookmark index diff
+ */
+export interface BookmarkIndexDiffResponse {
+  collection: BookmarkIndexAction[];
+}
+
