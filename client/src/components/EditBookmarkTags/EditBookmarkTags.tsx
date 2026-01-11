@@ -83,13 +83,14 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
         }
 
         // Set initial selected values (tag slugs)
-        const selectedSlugs = bookmark.tags.map((tag: TagType) => tag.slug);
+        const bookmarkTags = Array.isArray(bookmark.tags) ? bookmark.tags : [];
+        const selectedSlugs = bookmarkTags.map((tag: TagType) => tag.slug);
         selectRef.current.innerHTML = '';
         selectedSlugs.forEach((slug: string) => {
           const option = document.createElement('option');
           option.value = slug;
           option.selected = true;
-          const tag = bookmark.tags.find((t: TagType) => t.slug === slug);
+          const tag = bookmarkTags.find((t: TagType) => t.slug === slug);
           option.textContent = tag ? formatTagName(tag) : slug;
           selectRef.current?.appendChild(option);
         });
@@ -216,11 +217,12 @@ export const EditBookmarkTags = ({ bookmark, onSave, onClose }: EditBookmarkTags
       const selectedSlugs = tomSelectInstanceRef.current.getValue() as string[];
 
       // Update bookmark tags via API
-      await updateBookmarkTags(bookmark.id, selectedSlugs);
+      const updatedBookmark = await updateBookmarkTags(bookmark.id, selectedSlugs);
 
       // Dispatch custom events to notify other components
       window.dispatchEvent(new CustomEvent('tagsUpdated'));
-      window.dispatchEvent(new CustomEvent('bookmarksUpdated'));
+      // Pass the updated bookmark in the event detail to avoid full page reload
+      window.dispatchEvent(new CustomEvent('bookmarksUpdated', { detail: { updatedBookmark } }));
       onSave();
       hideModal();
     } catch (err: unknown) {

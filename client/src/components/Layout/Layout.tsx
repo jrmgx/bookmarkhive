@@ -1,26 +1,37 @@
-import { Outlet, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useSearchParams, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Sidebar } from '../Sidebar/Sidebar';
 import { MeSection } from '../Sidebar/sections/MeSection';
-// import { SocialSection } from '../Sidebar/sections/SocialSection';
-// import { SettingsSection } from '../Sidebar/sections/SettingsSection';
+import { ProfileSection } from '../Sidebar/sections/ProfileSection';
+import { SocialSection } from '../Sidebar/sections/SocialSection';
+import { SettingsSection } from '../Sidebar/sections/SettingsSection';
 import { EditBookmarkSidebarSection } from '../Sidebar/sections/EditBookmarkSidebarSection';
-import { TagListSidebarSection } from '../Sidebar/sections/TagListSidebarSection';
 import { getTags, deleteBookmark } from '../../services/api';
+import { getPublicTags } from '../../services/publicApi';
+import { useProfileContext } from '../../hooks/useProfileContext';
+import { isAuthenticated } from '../../services/auth';
 import { toggleTag, updateTagParams } from '../../utils/tags';
 import type { Tag as TagType } from '../../types';
 
 export const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tags, setTags] = useState<TagType[]>([]);
   const [isLoadingTags, setIsLoadingTags] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Detect if we're in profile mode
+  const isProfileMode = location.pathname.startsWith('/profile/');
+  const profileIdentifier = params.profileIdentifier;
+  const profileContext = useProfileContext(isProfileMode && profileIdentifier ? profileIdentifier : '');
+
   // Route detection
-  const isTagsPage = location.pathname === '/me/tags';
-  const bookmarkMatch = location.pathname.match(/^\/me\/bookmarks\/([^/]+)$/);
+  const isTagsPage = isProfileMode
+    ? location.pathname.endsWith('/tags')
+    : location.pathname === '/me/tags';
+  const bookmarkMatch = location.pathname.match(/^\/(?:me|profile\/[^/]+)\/bookmarks\/([^/]+)$/);
   const isBookmarkPage = !!bookmarkMatch;
   const bookmarkId = bookmarkMatch ? bookmarkMatch[1] : null;
 
@@ -32,8 +43,19 @@ export const Layout = () => {
     const loadTags = async () => {
       setIsLoadingTags(true);
       try {
-        const tagsData = await getTags();
-        setTags(tagsData);
+        if (isProfileMode && profileContext.baseUrl && profileContext.username) {
+          // Load public tags for profile
+          const tagsData = await getPublicTags(profileContext.baseUrl, profileContext.username);
+          setTags(tagsData);
+        } else if (!isProfileMode) {
+          // Load user's own tags (only if authenticated)
+          if (isAuthenticated()) {
+            const tagsData = await getTags();
+            setTags(tagsData);
+          } else {
+            setTags([]);
+          }
+        }
       } catch (err: unknown) {
         console.error('Failed to load tags:', err);
         setTags([]);
@@ -42,49 +64,73 @@ export const Layout = () => {
       }
     };
 
-    loadTags();
-
-    // Listen for tag update events to reload tags in sidebar
-    const handleTagsUpdated = () => {
+    if (!isProfileMode || (isProfileMode && profileContext.baseUrl && profileContext.username && !profileContext.isLoading)) {
       loadTags();
-    };
+    }
 
-    window.addEventListener('tagsUpdated', handleTagsUpdated);
-    return () => {
-      window.removeEventListener('tagsUpdated', handleTagsUpdated);
-    };
-  }, []);
+    // Listen for tag update events to reload tags in sidebar (only for own tags)
+    if (!isProfileMode && isAuthenticated()) {
+      const handleTagsUpdated = () => {
+        loadTags();
+      };
+
+      window.addEventListener('tagsUpdated', handleTagsUpdated);
+      return () => {
+        window.removeEventListener('tagsUpdated', handleTagsUpdated);
+      };
+    }
+  }, [isProfileMode, profileContext.baseUrl, profileContext.username, profileContext.isLoading]);
 
   // Navigation handlers
   const handleTagToggle = (slug: string) => {
     const newSelectedSlugs = toggleTag(slug, selectedTagSlugs);
     const newParams = updateTagParams(newSelectedSlugs, searchParams);
 
-    if (isTagsPage) {
-      navigate(`/me?${newParams.toString()}`);
+    if (isProfileMode) {
+      if (isTagsPage) {
+        navigate(`/profile/${profileIdentifier}?${newParams.toString()}`);
+      } else {
+        setSearchParams(newParams);
+      }
     } else {
-      setSearchParams(newParams);
+      if (isTagsPage) {
+        navigate(`/me?${newParams.toString()}`);
+      } else {
+        setSearchParams(newParams);
+      }
     }
   };
 
   const handleNavigateBack = () => {
     const params = updateTagParams(selectedTagSlugs, new URLSearchParams());
-    navigate(`/me?${params.toString()}`);
-  };
-
-  const handleNavigateToHome = () => {
-    const params = updateTagParams(selectedTagSlugs, new URLSearchParams());
-    navigate(`/me?${params.toString()}`);
+    if (isProfileMode) {
+      navigate(`/profile/${profileIdentifier}?${params.toString()}`);
+    } else {
+      navigate(`/me?${params.toString()}`);
+    }
   };
 
   const handleClearTags = () => {
     const params = updateTagParams([], searchParams);
-    setSearchParams(params);
+    if (isTagsPage) {
+      // If on tags page, navigate back to home page
+      if (isProfileMode) {
+        navigate(`/profile/${profileIdentifier}?${params.toString()}`);
+      } else {
+        navigate(`/me?${params.toString()}`);
+      }
+    } else {
+      setSearchParams(params);
+    }
   };
 
   const handleNavigateToTags = () => {
     const params = updateTagParams(selectedTagSlugs, new URLSearchParams());
-    navigate(`/me/tags${params.toString() ? `?${params.toString()}` : ''}`);
+    if (isProfileMode) {
+      navigate(`/profile/${profileIdentifier}/tags${params.toString() ? `?${params.toString()}` : ''}`);
+    } else {
+      navigate(`/me/tags${params.toString() ? `?${params.toString()}` : ''}`);
+    }
   };
 
   const handleNavigateToEdit = () => {
@@ -96,7 +142,7 @@ export const Layout = () => {
   };
 
   const handleDeleteBookmark = async () => {
-    if (!bookmarkId) return;
+    if (!bookmarkId || isProfileMode) return; // Don't allow deletion in profile mode
 
     const confirmed = window.confirm('Are you sure you want to delete this bookmark? This action cannot be undone.');
     if (!confirmed) return;
@@ -118,9 +164,26 @@ export const Layout = () => {
   // Determine which sections to show based on route
   const sections: React.ReactNode[] = [];
 
-  if (isLoadingTags) {
-    // Don't render sections while loading tags
+  if (isLoadingTags || (isProfileMode && profileContext.isLoading)) {
+    // Don't render sections while loading tags or profile context
+  } else if (isProfileMode) {
+    // Profile mode: always show ProfileSection with profile name as title
+    sections.push(
+      <ProfileSection
+        key="profile"
+        profileUsername={profileContext.username || profileIdentifier || ''}
+        tags={tags}
+        selectedTagSlugs={selectedTagSlugs}
+        onTagToggle={handleTagToggle}
+        onNavigateToTags={handleNavigateToTags}
+        onClearTags={handleClearTags}
+        onNavigateBack={isBookmarkPage ? handleNavigateBack : undefined}
+        isBookmarkPage={isBookmarkPage}
+        isTagsPage={isTagsPage}
+      />
+    );
   } else if (isBookmarkPage) {
+    // Own bookmarks: show full edit section
     sections.push(
       <EditBookmarkSidebarSection
         key="bookmark"
@@ -130,15 +193,9 @@ export const Layout = () => {
         isDeleting={isDeleting}
       />
     );
-  } else if (isTagsPage) {
-    sections.push(
-      <TagListSidebarSection
-        key="tags"
-        onNavigateToHome={handleNavigateToHome}
-      />
-    );
   } else {
-    // Home page: show main sections
+    // Own profile home page or tags page: show all sections
+    // Keep MeSection visible even on tags page
     sections.push(
       <MeSection
         key="me"
@@ -147,19 +204,27 @@ export const Layout = () => {
         onTagToggle={handleTagToggle}
         onNavigateToTags={handleNavigateToTags}
         onClearTags={handleClearTags}
+        isTagsPage={isTagsPage}
       />
     );
-    //sections.push(<SocialSection key="social" />);
-    //sections.push(<SettingsSection key="settings" />);
+    sections.push(<SocialSection key="social" />);
+    sections.push(<SettingsSection key="settings" />);
   }
 
   return (
     <>
       <nav className="navbar navbar-expand-md navbar-dark fixed-top bg-primary navbar-height">
         <div className="container-fluid">
-          <a className="text-white navbar-brand" href="/me">
+          <button
+            className="text-white navbar-brand border-0 bg-transparent p-0"
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.preventDefault();
+              window.dispatchEvent(new Event('refreshCurrentPage'));
+            }}
+          >
             BookmarkHive
-          </a>
+          </button>
           <button
             className="navbar-toggler bookmark-navbar-toggler"
             type="button"
@@ -182,7 +247,14 @@ export const Layout = () => {
             aria-labelledby="offcanvasResponsiveLabel"
           >
             <div className="offcanvas-header">
-              <h5 className="offcanvas-title" id="offcanvasResponsiveLabel">
+              <h5
+                className="offcanvas-title"
+                id="offcanvasResponsiveLabel"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  window.dispatchEvent(new Event('refreshCurrentPage'));
+                }}
+              >
                 BookmarkHive
               </h5>
               <button

@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Tag } from '../components/Tag/Tag';
-import { Icon } from '../components/Icon/Icon';
-import { EditTag } from '../components/EditTag/EditTag';
 import { ErrorAlert } from '../components/ErrorAlert/ErrorAlert';
-import { getTags, ApiError } from '../services/api';
+import { getPublicTags } from '../services/publicApi';
+import { ApiError } from '../services/api';
+import { useProfileContext } from '../hooks/useProfileContext';
 import { toggleTag, updateTagParams } from '../utils/tags';
 import type { Tag as TagType } from '../types';
 
-export const Tags = () => {
-
+export const PublicTags = () => {
+  const { profileIdentifier } = useParams<{ profileIdentifier: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [tags, setTags] = useState<TagType[]>([]);
@@ -18,7 +18,8 @@ export const Tags = () => {
   const [isLoading, setIsLoading] = useState(true);
   const gridRef = useRef<HTMLDivElement>(null);
   const [columnCount, setColumnCount] = useState(0);
-  const [editingTag, setEditingTag] = useState<TagType | null>(null);
+
+  const profileContext = useProfileContext(profileIdentifier || '');
 
   const tagQueryString = searchParams.get('tags') || '';
   const selectedTagSlugs = tagQueryString ? tagQueryString.split(',').filter(Boolean) : [];
@@ -40,11 +41,15 @@ export const Tags = () => {
 
   useEffect(() => {
     const loadTags = async () => {
+      if (!profileContext.baseUrl || !profileContext.username || profileContext.isLoading) {
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       setErrorStatus(null);
       try {
-        const tagsData = await getTags();
+        const tagsData = await getPublicTags(profileContext.baseUrl, profileContext.username);
         setTags(tagsData);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load tags';
@@ -58,42 +63,28 @@ export const Tags = () => {
     };
 
     loadTags();
-  }, []);
+  }, [profileContext.baseUrl, profileContext.username, profileContext.isLoading]);
 
   const handleTagToggle = (slug: string) => {
     const newSelectedSlugs = toggleTag(slug, selectedTagSlugs);
     const newParams = updateTagParams(newSelectedSlugs, searchParams);
-    navigate(`/me?${newParams.toString()}`);
+    navigate(`/profile/${profileIdentifier}?${newParams.toString()}`);
   };
 
-  const handleTagEdit = (tag: TagType) => {
-    setEditingTag(tag);
-  };
-
-  const handleTagSave = async () => {
-    // Refresh tags list after save
-    try {
-      const tagsData = await getTags();
-      setTags(tagsData);
-      setError(null);
-      setErrorStatus(null);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to refresh tags';
-      const status = err instanceof ApiError ? err.status : null;
-      setError(message);
-      setErrorStatus(status);
-    }
-  };
-
-  const handleTagModalClose = () => {
-    setEditingTag(null);
-  };
+  // Show profile context errors
+  if (profileContext.error) {
+    return (
+      <>
+        <ErrorAlert error={profileContext.error} statusCode={profileContext.errorStatus} />
+      </>
+    );
+  }
 
   return (
     <>
       <ErrorAlert error={error} statusCode={errorStatus} />
 
-      {isLoading ? (
+      {profileContext.isLoading || isLoading ? (
         <div className="text-center pt-5">
           <div className="spinner-border" role="status">
             <span className="visually-hidden">Loading...</span>
@@ -110,20 +101,7 @@ export const Tags = () => {
                 key={tag.slug}
                 className={`tags-grid-item ${isCheckerboard ? 'tags-grid-checker-1' : 'tags-grid-checker-2'}`}
               >
-                <div className="d-flex align-items-center">
-                  <Tag
-                    tag={tag}
-                    selectedTagSlugs={selectedTagSlugs}
-                    onToggle={handleTagToggle}
-                  />
-                  <button
-                    className="btn btn-outline-secondary border-0 ms-2"
-                    onClick={() => handleTagEdit(tag)}
-                    aria-label={`Edit ${tag.name}`}
-                  >
-                    <Icon name="pencil" />
-                  </button>
-                </div>
+                <Tag tag={tag} selectedTagSlugs={selectedTagSlugs} onToggle={handleTagToggle} />
               </div>
             );
           })}
@@ -131,12 +109,6 @@ export const Tags = () => {
       )}
 
       <div className="mt-1">&nbsp;</div>
-
-      <EditTag
-        tag={editingTag}
-        onSave={handleTagSave}
-        onClose={handleTagModalClose}
-      />
     </>
   );
 };

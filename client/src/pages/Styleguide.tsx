@@ -97,7 +97,6 @@ const mockBookmarks: BookmarkType[] = [
       size: 50000,
       mime: 'image/jpeg',
     },
-    pdf: null,
     archive: null,
     isPublic: false,
   },
@@ -117,7 +116,6 @@ const mockBookmarks: BookmarkType[] = [
       size: 50000,
       mime: 'image/jpeg',
     },
-    pdf: null,
     archive: null,
     isPublic: false,
   },
@@ -137,7 +135,6 @@ const mockBookmarks: BookmarkType[] = [
       size: 80000,
       mime: 'image/jpeg',
     },
-    pdf: null,
     archive: null,
     isPublic: false,
   },
@@ -157,7 +154,6 @@ const mockBookmarks: BookmarkType[] = [
       size: 90000,
       mime: 'image/jpeg',
     },
-    pdf: null,
     archive: null,
     isPublic: false,
   },
@@ -177,7 +173,6 @@ const mockBookmarks: BookmarkType[] = [
       size: 60000,
       mime: 'image/jpeg',
     },
-    pdf: null,
     archive: null,
     isPublic: false,
   },
@@ -197,7 +192,6 @@ const mockBookmarks: BookmarkType[] = [
       size: 70000,
       mime: 'image/jpeg',
     },
-    pdf: null,
     archive: null,
     isPublic: false,
   },
@@ -217,7 +211,6 @@ const mockBookmarks: BookmarkType[] = [
       size: 120000,
       mime: 'image/jpeg',
     },
-    pdf: null,
     archive: null,
     isPublic: false,
   },
@@ -460,6 +453,14 @@ export const Styleguide = () => {
             layout={LAYOUT_DEFAULT}
             selectedTagSlugs={selectedTagSlugs}
             onTagToggle={handleTagToggle}
+          />
+          <Bookmark
+            bookmark={mockBookmarks[0]}
+            layout={LAYOUT_DEFAULT}
+            selectedTagSlugs={selectedTagSlugs}
+            onTagToggle={handleTagToggle}
+            hideAddTagButton={true}
+            isProfileMode={true}
           />
         </div>
         <div className="mt-3">

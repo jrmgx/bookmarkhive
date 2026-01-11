@@ -149,7 +149,7 @@ export function createApiClient(config: ApiConfig): ApiClient {
      * Registers a new user account
      */
     async register(userData: UserCreate): Promise<UserOwner> {
-      const response = await fetch(`${baseUrl}/account`, {
+      const response = await fetch(`${baseUrl}/register`, {
         method: 'POST',
         headers: {
           'accept': 'application/json',

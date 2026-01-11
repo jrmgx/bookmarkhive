@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { BookmarkImage } from '../BookmarkImage/BookmarkImage';
 import type { Bookmark } from '../../types';
 
 interface MasonryProps {
@@ -85,29 +86,16 @@ export const Masonry = ({ bookmarks }: MasonryProps) => {
             .filter((bookmark) => bookmarkColumns.get(bookmark.id) === colIndex)
             .map((bookmark) => (
               <div key={bookmark.id} className="my-2">
-                <a
-                  id={`bookmark-${bookmark.id}`}
-                  target="_blank"
-                  href={bookmark.url}
-                  rel="noopener noreferrer"
-                  style={{ position: 'relative', display: 'block' }}
-                >
-                  {bookmark.isPublic && (
-                    <span className="bookmark-public-indicator">✦</span>
-                  )}
-                  <img
-                    ref={(el) => {
-                      if (el) {
-                        imageRefs.current.set(bookmark.id, el);
-                      } else {
-                        imageRefs.current.delete(bookmark.id);
-                      }
-                    }}
-                    className="w-100"
-                    src={bookmark.mainImage?.contentUrl ?? undefined}
-                    alt={bookmark.title}
-                  />
-                </a>
+                <BookmarkImage
+                  bookmark={bookmark}
+                  imageRef={(el) => {
+                    if (el) {
+                      imageRefs.current.set(bookmark.id, el);
+                    } else {
+                      imageRefs.current.delete(bookmark.id);
+                    }
+                  }}
+                />
               </div>
             ))}
         </div>

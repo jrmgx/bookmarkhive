@@ -4,6 +4,9 @@ import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Tags } from './pages/Tags';
 import { ShowBookmark } from './pages/ShowBookmark';
+import { PublicHome } from './pages/PublicHome';
+import { PublicTags } from './pages/PublicTags';
+import { PublicShowBookmark } from './pages/PublicShowBookmark';
 import { Styleguide } from './pages/Styleguide';
 import { Layout } from './components/Layout/Layout';
 import { IriRedirect } from './components/IriRedirect/IriRedirect';
@@ -35,6 +38,13 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/styleguide" element={<Styleguide />} />
+        {/* Public routes - no authentication required */}
+        <Route element={<Layout />}>
+          <Route path="/profile/:profileIdentifier/tags" element={<PublicTags />} />
+          <Route path="/profile/:profileIdentifier/bookmarks/:id" element={<PublicShowBookmark />} />
+          <Route path="/profile/:profileIdentifier" element={<PublicHome />} />
+        </Route>
+        {/* Protected routes - authentication required */}
         <Route
           element={
             <ProtectedRoute>

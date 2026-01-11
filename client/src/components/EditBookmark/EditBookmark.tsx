@@ -85,7 +85,8 @@ export const EditBookmark = ({ bookmark, onSave, onClose }: EditBookmarkProps) =
       const updatedBookmark = await updateBookmark(bookmark.id, { title: title.trim() });
 
       // Dispatch custom events to notify other components
-      window.dispatchEvent(new CustomEvent('bookmarksUpdated'));
+      // Pass the updated bookmark in the event detail to avoid full page reload
+      window.dispatchEvent(new CustomEvent('bookmarksUpdated', { detail: { updatedBookmark } }));
       onSave(updatedBookmark);
       hideModal();
     } catch (err: unknown) {

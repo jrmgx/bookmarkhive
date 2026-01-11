@@ -8,7 +8,6 @@ export const Register = () => {
 
   const navigate = useNavigate();
   const [instanceUrl, setInstanceUrl] = useState('');
-  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -66,7 +65,7 @@ export const Register = () => {
       // Normalize instance URL (remove trailing slash)
       const normalizedUrl = instanceUrl.trim().replace(/\/$/, '');
 
-      await register(normalizedUrl, { email, password, username });
+      await register(normalizedUrl, { password, username });
       // After successful registration, redirect to login
       navigate('/login', { state: { message: 'Account created successfully. Please login.' } });
     } catch (err: unknown) {
@@ -109,20 +108,6 @@ export const Register = () => {
                       autoFocus
                     />
                     <small className="form-text text-muted">Enter your BookmarkHive instance URL</small>
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="email" className="form-label">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      className="form-control"
-                      id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
                   </div>
                   <div className="mb-3">
                     <label htmlFor="username" className="form-label">

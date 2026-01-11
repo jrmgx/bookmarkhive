@@ -107,14 +107,22 @@ export interface FileObject extends IRI {
 // ============================================================================
 
 /**
+ * Account - ActivityPub account object
+ * Extends IRI schema
+ */
+export interface Account extends IRI {
+  username: string;
+}
+
+/**
  * UserOwner - API response format for owned user profile
  * Extends IRI schema
  */
 export interface UserOwner extends IRI {
-  email: string;
   username: string;
   isPublic: boolean;
   meta?: ApiTagMeta;
+  account?: Account;
 }
 
 /**
@@ -123,6 +131,7 @@ export interface UserOwner extends IRI {
  */
 export interface UserProfile extends IRI {
   username: string;
+  account?: Account;
 }
 
 /**
@@ -138,7 +147,6 @@ export interface User {
  * UserCreate - Request payload for creating users
  */
 export interface UserCreate {
-  email: string;
   username: string;
   password: string;
   isPublic?: boolean;
@@ -150,8 +158,8 @@ export interface UserCreate {
  */
 export interface UserUpdate {
   username?: string;
-  email?: string;
   password?: string;
+  isPublic?: boolean;
   meta?: ApiTagMeta;
 }
 
@@ -173,9 +181,9 @@ export interface BookmarkOwner extends IRI {
   isPublic: boolean;
   tags: ApiTag[];
   owner: UserOwner;
+  account?: Account;
   mainImage: FileObject | null;
   archive: FileObject | null;
-  pdf: FileObject | null;
 }
 
 /**
@@ -188,9 +196,9 @@ export interface BookmarkProfile extends IRI {
   title: string;
   url: string;
   tags: ApiTagProfile[];
+  account?: Account;
   mainImage: FileObject | null;
   archive: FileObject | null;
-  pdf: FileObject | null;
 }
 
 /**
@@ -207,7 +215,6 @@ export interface Bookmark extends IRI {
   tags: Tag[];
   owner: User;
   mainImage: FileObject | null;
-  pdf: FileObject | null;
   archive: FileObject | null;
 }
 

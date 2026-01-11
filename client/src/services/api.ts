@@ -60,7 +60,7 @@ export const login = async (instanceUrl: string, username: string, password: str
 /**
  * Register a new user account
  */
-export const register = async (instanceUrl: string, userData: { email: string; password: string; username: string }): Promise<UserOwner> => {
+export const register = async (instanceUrl: string, userData: { password: string; username: string }): Promise<UserOwner> => {
   // Save instance URL first
   await storageAdapter.setBaseUrl(instanceUrl);
 
@@ -185,4 +185,59 @@ export const invalidateTagsCache = (): void => {
   if (apiClientCache) {
     apiClientCache.invalidateTagsCache();
   }
+};
+
+/**
+ * Webfinger response structure
+ */
+interface WebfingerLink {
+  rel: string;
+  type?: string;
+  href?: string;
+  template?: string;
+}
+
+interface WebfingerResponse {
+  subject: string;
+  aliases?: string[];
+  links: WebfingerLink[];
+}
+
+/**
+ * Query webfinger endpoint on a specific instance
+ * @param acct - Account identifier parameter (e.g., username@instance.host)
+ * @param instanceHost - Optional instance host. If not provided, uses the current instance from storage
+ * @returns WebFinger JSON response
+ */
+export const webfinger = async (acct: string, instanceHost?: string): Promise<WebfingerResponse> => {
+  let baseUrl: string;
+
+  if (instanceHost) {
+    // Use provided instance host
+    const protocol = instanceHost.includes('localhost') || instanceHost.includes('127.0.0.1') ? 'http' : 'https';
+    baseUrl = `${protocol}://${instanceHost}`;
+  } else {
+    // Use current instance from storage
+    const storedBaseUrl = await storageAdapter.getBaseUrl();
+    if (!storedBaseUrl) {
+      throw new Error('API base URL is not configured. Please set your instance URL in the login form.');
+    }
+    baseUrl = storedBaseUrl;
+  }
+
+  const url = new URL('/.well-known/webfinger', baseUrl);
+  url.searchParams.set('resource', 'acct:' + acct); // ie: `acct:jrmgx@mamot.fr`
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/jrd+json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`WebFinger request failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
 };

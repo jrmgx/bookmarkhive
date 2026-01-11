@@ -31,6 +31,10 @@
   --bs-card-bg: #111111 !important;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 html, body {
   font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
   color: #333;
@@ -124,7 +128,7 @@ body {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  color: #198754;
+  color: rgba(var(--bs-success-rgb), var(--bs-text-opacity));
   font-size: 1.25rem;
   line-height: 1;
   z-index: 10;

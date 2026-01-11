@@ -21,6 +21,8 @@ interface BookmarkProps {
   onEditSave?: (updatedBookmark: BookmarkType) => void;
   onEditClose?: () => void;
   hideShowButton?: boolean;
+  hideAddTagButton?: boolean;
+  isProfileMode?: boolean;
 }
 
 export const Bookmark = ({
@@ -33,7 +35,9 @@ export const Bookmark = ({
   showEditModal,
   onEditSave,
   onEditClose,
-  hideShowButton
+  hideShowButton,
+  hideAddTagButton,
+  isProfileMode = false
 }: BookmarkProps) => {
 
   const isEmbedded = layout === LAYOUT_EMBEDDED;
@@ -97,7 +101,7 @@ export const Bookmark = ({
     setShowEditTagsModal(false);
   };
 
-  const sortedTags = [...bookmark.tags].sort((a, b) => {
+  const sortedTags = (Array.isArray(bookmark.tags) ? bookmark.tags : []).sort((a, b) => {
     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
   });
 
@@ -114,9 +118,6 @@ export const Bookmark = ({
       <div id={`bookmark-${bookmark.id}`} className="card h-100">
         {isEmbedded && embedResult ? (
           <div className="card-img-top bookmark-img embed-img">
-            {bookmark.isPublic && (
-              <span className="bookmark-public-indicator">✦</span>
-            )}
             {!embedLoaded ? (
               <div
                 className={`${embedResult.type}-player embed-preview`}
@@ -157,17 +158,11 @@ export const Bookmark = ({
           </div>
         ) : isEmbedded && !embedResult ? (
           <div className="card-img-top bookmark-img embed-img" style={{ position: 'relative' }}>
-            {bookmark.isPublic && (
-              <span className="bookmark-public-indicator">✦</span>
-            )}
             <PlaceholderImage type="no-embed" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
             <a target="_blank" className="d-block h-100 w-100" href={bookmark.url} rel="noopener noreferrer" style={{ position: 'relative', zIndex: 1 }}></a>
           </div>
         ) : (
           <div className="card-img-top bookmark-img flex-shrink-0" style={normalBookmarkStyle}>
-            {bookmark.isPublic && (
-              <span className="bookmark-public-indicator">✦</span>
-            )}
             {imageUrl && !imageError && (
               <img
                 src={imageUrl}
@@ -213,30 +208,46 @@ export const Bookmark = ({
                   className={`btn btn-outline-secondary btn-xs me-1 mb-1 ${isSelected ? 'active' : ''}`}
                   onClick={() => handleTagClick(tag.slug)}
                 >
-                  <TagName tag={tag} />
+                  <TagName tag={tag} showPublicIndicator={!isProfileMode} />
                 </button>
               );
             })}
-            <button
-              className="btn btn-outline-primary btn-xs mb-1"
-              type="button"
-              onClick={handleEditTags}
-              aria-label="Edit tags"
-            >
-              #
-            </button>
+            {!hideAddTagButton && (
+              <button
+                className="btn btn-outline-primary btn-xs mb-1"
+                type="button"
+                onClick={handleEditTags}
+                aria-label="Edit tags"
+              >
+                #
+              </button>
+            )}
           </div>
         </div>
         <div className="card-footer text-body-secondary d-flex align-items-center py-1 pe-0">
-          <div className="fs-small flex-grow-1">{formatDate(bookmark.createdAt)}</div>
+          <div className="fs-small flex-grow-1">
+            {formatDate(bookmark.createdAt)}
+            {bookmark.isPublic && !isProfileMode && (
+              <span className="text-success ms-1">✦</span>
+            )}
+          </div>
           <div>
             {!hideShowButton && (
               <button
-                className="btn btn-outline-secondary border-0"
-                onClick={handleShow}
-                aria-label="Show bookmark"
+              className="btn btn-outline-secondary border-0"
+              onClick={handleShow}
+              aria-label="Show bookmark"
               >
                 <Icon name="eye" />
+              </button>
+            )}
+            {isProfileMode && (
+              <button
+                className="btn btn-outline-secondary border-0"
+                onClick={() => {}}
+                aria-label="Add bookmark"
+              >
+                <Icon name="save" />
               </button>
             )}
             <button

@@ -1,6 +1,7 @@
 import type { Tag as TagType } from '../../types';
 import { TagName } from '../TagName/TagName';
 import { closeOffcanvas } from '../../utils/offcanvas';
+import { useLocation } from 'react-router-dom';
 
 interface TagProps {
   tag: TagType;
@@ -15,6 +16,8 @@ export const Tag = ({
   onToggle,
   className
 }: TagProps) => {
+  const location = useLocation();
+  const isProfileMode = location.pathname.startsWith('/profile/');
   const isSelected = selectedTagSlugs.includes(tag.slug);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -44,7 +47,7 @@ export const Tag = ({
           className={buttonClasses}
           onClick={handleClick}
         >
-          <TagName tag={tag} />
+          <TagName tag={tag} showPublicIndicator={!isProfileMode} />
         </button>
       </div>
     </>

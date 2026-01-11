@@ -48,7 +48,6 @@ export async function getAPIHost(): Promise<string | null> {
 
   return new Promise((resolve) => {
     storage.local.get(['apiHost'], (result: { apiHost?: string }) => {
-      // @ts-expect-error - chrome.runtime.lastError may not exist
       if (chrome?.runtime?.lastError) {
         console.error('Error retrieving API host:', chrome.runtime.lastError.message);
         resolve(null);

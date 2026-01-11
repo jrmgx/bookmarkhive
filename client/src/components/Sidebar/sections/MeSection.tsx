@@ -9,6 +9,7 @@ interface MeSectionProps {
   onTagToggle?: (slug: string) => void;
   onNavigateToTags?: () => void;
   onClearTags?: () => void;
+  isTagsPage?: boolean;
 }
 
 export const MeSection = ({
@@ -17,9 +18,10 @@ export const MeSection = ({
   onTagToggle,
   onNavigateToTags,
   onClearTags,
+  isTagsPage = false,
 }: MeSectionProps) => {
   const pinnedTags = tags.filter((tag) => tag.pinned);
-  const isHomepageActive = selectedTagSlugs.length === 0;
+  const isHomepageActive = selectedTagSlugs.length === 0 && !isTagsPage;
 
   return (
     <SidebarSection
@@ -43,6 +45,7 @@ export const MeSection = ({
         <SidebarAction
           label={pinnedTags.length === 0 ? 'Show all tags and choose favorite' : 'Show all tags'}
           onClick={onNavigateToTags}
+          active={isTagsPage}
         />
       )}
     </SidebarSection>

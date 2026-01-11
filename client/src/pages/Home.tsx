@@ -124,8 +124,26 @@ export const Home = () => {
   // Listen for bookmarks updated event to refresh the list
   // Note: We no longer invalidate the index, sync will handle updates
   useEffect(() => {
-    const handleBookmarksUpdated = async () => {
-      loadData();
+    const handleBookmarksUpdated = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ updatedBookmark?: BookmarkType }>;
+      const updatedBookmark = customEvent.detail?.updatedBookmark;
+
+      if (updatedBookmark) {
+        // Update only the specific bookmark to avoid UI jumps
+        setBookmarks((prevBookmarks) =>
+          prevBookmarks.map((b) => (b.id === updatedBookmark.id ? updatedBookmark : b))
+        );
+        // Also update indexed bookmarks if they exist
+        if (indexedBookmarks.length > 0) {
+          setIndexedBookmarks((prevIndexed) =>
+            prevIndexed.map((b) => (b.id === updatedBookmark.id ? updatedBookmark : b))
+          );
+        }
+      } else {
+        // Fallback: if no bookmark data provided, reload all (for other update scenarios)
+        loadData();
+      }
+
       // Wait a bit for the server to process the update and create the index action
       // Then try to sync the index in the background
       setTimeout(async () => {
@@ -144,9 +162,16 @@ export const Home = () => {
       }, 1000); // Wait 1 second for server to process
     };
 
+    // Listen for refresh current page event (triggered by logo click)
+    const handleRefreshCurrentPage = () => {
+      loadData();
+    };
+
     window.addEventListener('bookmarksUpdated', handleBookmarksUpdated);
+    window.addEventListener('refreshCurrentPage', handleRefreshCurrentPage);
     return () => {
       window.removeEventListener('bookmarksUpdated', handleBookmarksUpdated);
+      window.removeEventListener('refreshCurrentPage', handleRefreshCurrentPage);
     };
   }, [loadData]);
 
