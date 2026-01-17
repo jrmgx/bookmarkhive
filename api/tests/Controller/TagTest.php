@@ -3,8 +3,8 @@
 namespace App\Tests\Controller;
 
 use App\Factory\AccountFactory;
-use App\Factory\TagFactory;
 use App\Factory\UserFactory;
+use App\Factory\UserTagFactory;
 use App\Tests\BaseApiTestCase;
 
 class TagTest extends BaseApiTestCase
@@ -13,7 +13,7 @@ class TagTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        TagFactory::createMany(3, ['owner' => $user]);
+        UserTagFactory::createMany(3, ['owner' => $user]);
 
         $this->assertUnauthorized('GET', '/users/me/tags');
 
@@ -129,7 +129,7 @@ class TagTest extends BaseApiTestCase
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
         for ($i = 1; $i <= 1000; ++$i) {
-            TagFactory::createOne([
+            UserTagFactory::createOne([
                 'owner' => $user,
                 'name' => "Tag {$i}",
             ]);
@@ -154,7 +154,7 @@ class TagTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag = TagFactory::createOne([
+        $tag = UserTagFactory::createOne([
             'owner' => $user,
             'name' => 'My Tag',
         ]);
@@ -177,7 +177,7 @@ class TagTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag = TagFactory::createOne([
+        $tag = UserTagFactory::createOne([
             'owner' => $user,
             'name' => 'Original Title',
         ]);
@@ -214,7 +214,7 @@ class TagTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag = TagFactory::createOne(['owner' => $user]);
+        $tag = UserTagFactory::createOne(['owner' => $user]);
 
         $this->assertUnauthorized('DELETE', "/users/me/tags/{$tag->slug}");
 
@@ -232,10 +232,9 @@ class TagTest extends BaseApiTestCase
         $user = UserFactory::createOne(['username' => 'testuser']);
         AccountFactory::createOne(['username' => 'testuser', 'owner' => $user]);
 
-        TagFactory::createMany(3, ['owner' => $user, 'isPublic' => true]);
-        TagFactory::createMany(2, ['owner' => $user, 'isPublic' => false]);
+        UserTagFactory::createMany(3, ['owner' => $user, 'isPublic' => true]);
+        UserTagFactory::createMany(2, ['owner' => $user, 'isPublic' => false]);
 
-        $this->client->enableProfiler();
         $this->request('GET', "/profile/{$user->username}/tags");
         $this->assertResponseIsSuccessful();
 
@@ -250,13 +249,13 @@ class TagTest extends BaseApiTestCase
         $user = UserFactory::createOne(['username' => 'testuser']);
         AccountFactory::createOne(['username' => 'testuser', 'owner' => $user]);
 
-        $publicTag = TagFactory::createOne([
+        $publicTag = UserTagFactory::createOne([
             'owner' => $user,
             'name' => 'Public Tag',
             'isPublic' => true,
         ]);
 
-        $privateTag = TagFactory::createOne([
+        $privateTag = UserTagFactory::createOne([
             'owner' => $user,
             'name' => 'Private Tag',
             'isPublic' => false,
@@ -305,7 +304,7 @@ class TagTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag = TagFactory::createOne([
+        $tag = UserTagFactory::createOne([
             'owner' => $user,
             'name' => 'Original Tag',
             'meta' => [],
@@ -336,7 +335,7 @@ class TagTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag = TagFactory::createOne([
+        $tag = UserTagFactory::createOne([
             'owner' => $user,
             'name' => 'Tag With Existing Meta',
             'meta' => [
@@ -377,7 +376,7 @@ class TagTest extends BaseApiTestCase
         [$owner, $ownerToken] = $this->createAuthenticatedUserAccount('owneruser', 'test');
         [, $otherToken] = $this->createAuthenticatedUserAccount('otheruser', 'test');
 
-        $privateTag = TagFactory::createOne([
+        $privateTag = UserTagFactory::createOne([
             'owner' => $owner,
             'name' => 'Private Tag',
             'isPublic' => false,
@@ -397,7 +396,7 @@ class TagTest extends BaseApiTestCase
         [$owner, $ownerToken] = $this->createAuthenticatedUserAccount('owneruser', 'test');
         [, $otherToken] = $this->createAuthenticatedUserAccount('otheruser', 'test');
 
-        $tag = TagFactory::createOne([
+        $tag = UserTagFactory::createOne([
             'owner' => $owner,
             'name' => 'Original Tag',
         ]);
@@ -431,7 +430,7 @@ class TagTest extends BaseApiTestCase
         [$owner, $ownerToken] = $this->createAuthenticatedUserAccount('owneruser', 'test');
         [, $otherToken] = $this->createAuthenticatedUserAccount('otheruser', 'test');
 
-        $tag = TagFactory::createOne([
+        $tag = UserTagFactory::createOne([
             'owner' => $owner,
             'name' => 'Tag To Delete',
         ]);
@@ -452,7 +451,7 @@ class TagTest extends BaseApiTestCase
         $user = UserFactory::createOne(['username' => 'testuser', 'isPublic' => true]);
         AccountFactory::createOne(['username' => 'testuser', 'owner' => $user]);
 
-        $tag = TagFactory::createOne([
+        $tag = UserTagFactory::createOne([
             'owner' => $user,
             'name' => 'Public Tag',
             'isPublic' => true,

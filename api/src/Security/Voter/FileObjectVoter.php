@@ -18,7 +18,7 @@ final class FileObjectVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return \in_array($attribute, [self::OWNER]) && $subject instanceof FileObject; // TODO simplify
+        return self::OWNER === $attribute && $subject instanceof FileObject;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool

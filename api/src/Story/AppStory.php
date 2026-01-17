@@ -4,8 +4,9 @@ namespace App\Story;
 
 use App\Factory\AccountFactory;
 use App\Factory\BookmarkFactory;
-use App\Factory\TagFactory;
+use App\Factory\InstanceTagFactory;
 use App\Factory\UserFactory;
+use App\Factory\UserTagFactory;
 use Doctrine\Common\Collections\ArrayCollection;
 use Zenstruck\Foundry\Attribute\AsFixture;
 use Zenstruck\Foundry\Story;
@@ -17,10 +18,29 @@ final class AppStory extends Story
     {
         $user = UserFactory::createOne(['username' => 'one']);
         $account = AccountFactory::createOne(['username' => 'one', 'owner' => $user]);
-        TagFactory::createMany(10, ['owner' => $user]);
-        $tagPublic = TagFactory::createOne(['name' => 'Tag Public', 'owner' => $user, 'isPublic' => true]);
-        $tagPrivate = TagFactory::createOne(['name' => 'Tag Private', 'owner' => $user, 'isPublic' => false]);
-        BookmarkFactory::createMany(10, ['account' => $account, 'isPublic' => true, 'tags' => new ArrayCollection([$tagPublic, $tagPrivate])]);
-        BookmarkFactory::createMany(10, ['account' => $account, 'isPublic' => false, 'tags' => new ArrayCollection([$tagPublic, $tagPrivate])]);
+        $instanceTagPublic = InstanceTagFactory::createOne(['name' => 'Tag Public']);
+        $instanceTagPrivate = InstanceTagFactory::createOne(['name' => 'Tag Private']);
+        $userTagPublic = UserTagFactory::createOne([
+            'name' => 'Tag Public',
+            'owner' => $user,
+            'isPublic' => true,
+        ]);
+        $userTagPrivate = UserTagFactory::createOne([
+            'name' => 'Tag Private',
+            'owner' => $user,
+            'isPublic' => false,
+        ]);
+        BookmarkFactory::createMany(10, [
+            'account' => $account,
+            'isPublic' => true,
+            'userTags' => new ArrayCollection([$userTagPublic, $userTagPrivate]),
+            'instanceTags' => new ArrayCollection([$instanceTagPublic, $instanceTagPrivate]),
+        ]);
+        BookmarkFactory::createMany(10, [
+            'account' => $account,
+            'isPublic' => false,
+            'userTags' => new ArrayCollection([$userTagPublic, $userTagPrivate]),
+            'instanceTags' => new ArrayCollection([$instanceTagPublic, $instanceTagPrivate]),
+        ]);
     }
 }

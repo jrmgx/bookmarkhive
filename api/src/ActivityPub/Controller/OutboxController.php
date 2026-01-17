@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\ActivityPub;
+namespace App\ActivityPub\Controller;
 
 use App\Config\RouteAction;
 use App\Config\RouteType;
@@ -12,16 +12,19 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route(path: '/ap', name: RouteType::ActivityPub->value)]
-class SharedInboxController extends AbstractController
+class OutboxController extends AbstractController
 {
     public function __construct(
         private readonly ActivityPubResponseBuilder $activityPubResponseBuilder,
     ) {
     }
 
-    #[Route(path: '/inbox', name: RouteAction::SharedInbox->value, methods: ['GET'])]
-    public function inbox(): JsonResponse
+    #[Route(path: '/u/{username}/outbox', name: RouteAction::Outbox->value, methods: ['GET'])]
+    public function outbox(): JsonResponse
     {
-        return $this->activityPubResponseBuilder->single(null, []);
+        // TODO
+        // do not implement POST, document it
+        // return the list of activities as AP entities
+        return $this->activityPubResponseBuilder->todo();
     }
 }

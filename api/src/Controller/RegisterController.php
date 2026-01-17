@@ -50,7 +50,8 @@ final class RegisterController extends AbstractController
                     new OA\Property(property: 'password', type: 'string', minLength: 8, description: 'User password'),
                     new OA\Property(property: 'isPublic', type: 'boolean', description: 'Whether the profile is public', default: false),
                     new OA\Property(property: 'meta', type: 'object', description: 'Additional metadata as key-value pairs', additionalProperties: true),
-                ]
+                ],
+                example: ['username' => 'janedoe', 'password' => 'password']
             )
         ),
         responses: [
@@ -63,7 +64,7 @@ final class RegisterController extends AbstractController
                         new OA\Examples(
                             example: 'success',
                             value: [
-                                'username' => 'johndoe',
+                                'username' => 'janedoe',
                                 'isPublic' => false,
                                 'meta' => [],
                                 'account' => Account::EXAMPLE_ACCOUNT,

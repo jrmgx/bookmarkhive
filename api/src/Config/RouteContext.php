@@ -4,10 +4,10 @@ namespace App\Config;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 
-class RouteContext
+final readonly class RouteContext
 {
     public function __construct(
-        private readonly RequestStack $requestStack,
+        private RequestStack $requestStack,
     ) {
     }
 

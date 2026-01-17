@@ -24,11 +24,4 @@ final class UserFactory extends PersistentObjectFactory
             'password' => 'undefined_password',
         ];
     }
-
-    #[\Override]
-    protected function initialize(): static
-    {
-        return $this;
-        // ->afterInstantiate(function(User $user): void {})
-    }
 }

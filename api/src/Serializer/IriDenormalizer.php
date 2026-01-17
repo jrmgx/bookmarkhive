@@ -3,10 +3,10 @@
 namespace App\Serializer;
 
 use App\Entity\FileObject;
-use App\Entity\Tag;
 use App\Entity\User;
+use App\Entity\UserTag;
 use App\Repository\FileObjectRepository;
-use App\Repository\TagRepository;
+use App\Repository\UserTagRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -18,7 +18,7 @@ readonly class IriDenormalizer implements DenormalizerInterface
 
     public function __construct(
         private Security $security,
-        private TagRepository $tagRepository,
+        private UserTagRepository $userTagRepository,
         private FileObjectRepository $fileObjectRepository,
     ) {
     }
@@ -28,15 +28,15 @@ readonly class IriDenormalizer implements DenormalizerInterface
         /** @var User $user */
         $user = $this->security->getUser() ?? throw new \LogicException('No user logged.');
 
-        if (Tag::class === $type) {
+        if (UserTag::class === $type) {
             $path = (string) parse_url($data, \PHP_URL_PATH);
             $matches = [];
-            if (false === preg_match(self::PATH_TAGS, $path, $matches) || !isset($matches[1])) {
+            if (!preg_match(self::PATH_TAGS, $path, $matches)) {
                 throw new UnprocessableEntityHttpException('This Tag does not exist.');
             }
             $slug = $matches[1];
 
-            return $this->tagRepository->findOneByOwnerAndSlug($user, $slug, onlyPublic: false)
+            return $this->userTagRepository->findOneByOwnerAndSlug($user, $slug, onlyPublic: false)
                 ->getQuery()->getOneOrNullResult()
                 ?? throw new UnprocessableEntityHttpException('This Tag does not exist.')
             ;
@@ -45,7 +45,7 @@ readonly class IriDenormalizer implements DenormalizerInterface
         if (FileObject::class === $type) {
             $path = (string) parse_url($data, \PHP_URL_PATH);
             $matches = [];
-            if (false === preg_match(self::PATH_FILE_OBJECTS, $path, $matches) || !isset($matches[1])) {
+            if (!preg_match(self::PATH_FILE_OBJECTS, $path, $matches)) {
                 throw new UnprocessableEntityHttpException('This FileObject does not exist.');
             }
             $id = $matches[1];
@@ -65,10 +65,13 @@ readonly class IriDenormalizer implements DenormalizerInterface
         ?string $format = null,
         array $context = [],
     ): bool {
-        return
-            (Tag::class === $type || FileObject::class === $type)
-            && \is_string($data)
-            && (false !== preg_match(self::PATH_TAGS, $data) || false !== preg_match(self::PATH_FILE_OBJECTS, $data));
+        if (\is_string($data) && (UserTag::class === $type || FileObject::class === $type)) {
+            $path = (string) parse_url($data, \PHP_URL_PATH);
+
+            return preg_match(self::PATH_TAGS, $path) || preg_match(self::PATH_FILE_OBJECTS, $path);
+        }
+
+        return false;
     }
 
     /**
@@ -79,7 +82,7 @@ readonly class IriDenormalizer implements DenormalizerInterface
     public function getSupportedTypes(?string $format): array
     {
         return [
-            Tag::class => true,
+            UserTag::class => true,
             FileObject::class => true,
         ];
     }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace DoctrineMigrations;
 
+use App\ActivityPub\KeysGenerator;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
-use phpseclib3\Crypt\RSA;
 use Symfony\Component\Uid\Uuid;
 
 final class Version20260108135327 extends AbstractMigration
@@ -41,9 +41,9 @@ final class Version20260108135327 extends AbstractMigration
 
         foreach ($users as $user) {
             $accountId = Uuid::v7()->toString();
-            $keyPair = RSA::createKey(4096);
-            $publicKey = (string) $keyPair->getPublicKey();
-            $privateKey = (string) $keyPair;
+            $keyPair = KeysGenerator::doctrineMigrationHelper();
+            $publicKey = $keyPair['public'];
+            $privateKey = $keyPair['private'];
             $uri = "https://api.bookmarkhive.test/profile/{$user['username']}";
             $lastUpdatedAt = new \DateTimeImmutable()->format('Y-m-d H:i:s');
 

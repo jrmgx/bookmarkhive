@@ -6,7 +6,8 @@ use App\Config\RouteAction;
 use App\Config\RouteType;
 use App\Entity\Account;
 use App\Helper\RequestHelper;
-use App\Repository\TagRepository;
+use App\Repository\InstanceTagRepository;
+use App\Repository\UserTagRepository;
 use App\Response\JsonResponseBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
@@ -26,11 +27,12 @@ final class ProfileTagController extends TagController
     public function __construct(
         #[Autowire('%env(PREFERRED_CLIENT)%')]
         private readonly string $preferredClient,
-        TagRepository $tagRepository,
+        UserTagRepository $userTagRepository,
+        InstanceTagRepository $instanceTagRepository,
         EntityManagerInterface $entityManager,
         JsonResponseBuilder $jsonResponseBuilder,
     ) {
-        parent::__construct($tagRepository, $entityManager, $jsonResponseBuilder);
+        parent::__construct($userTagRepository, $instanceTagRepository, $entityManager, $jsonResponseBuilder);
     }
 
     #[OA\Get(
@@ -146,20 +148,20 @@ final class ProfileTagController extends TagController
     ): Response {
         $user = $account->owner ?? throw new NotFoundHttpException();
 
-        if (RequestHelper::accepts($request, 'application/json')) {
-            $tag = $this->tagRepository->findOneByOwnerAndSlug($user, $slug, onlyPublic: true)
-                ->getQuery()->getOneOrNullResult()
-                ?? throw new NotFoundHttpException()
-            ;
+        if (RequestHelper::accepts($request, ['text/html'])) {
+            $iri = $this->generateUrl(RouteType::ProfileTags->value . RouteAction::Get->value, [
+                'slug' => $slug,
+                'username' => $user->username,
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
 
-            return $this->jsonResponseBuilder->single($tag, ['tag:show:public']);
+            return new RedirectResponse($this->preferredClient . "?iri={$iri}");
         }
 
-        $iri = $this->generateUrl(RouteType::ProfileTags->value . RouteAction::Get->value, [
-            'slug' => $slug,
-            'username' => $user->username,
-        ], UrlGeneratorInterface::ABSOLUTE_URL);
+        $tag = $this->userTagRepository->findOneByOwnerAndSlug($user, $slug, onlyPublic: true)
+            ->getQuery()->getOneOrNullResult()
+            ?? throw new NotFoundHttpException()
+        ;
 
-        return new RedirectResponse($this->preferredClient . "?iri={$iri}");
+        return $this->jsonResponseBuilder->single($tag, ['tag:show:public']);
     }
 }

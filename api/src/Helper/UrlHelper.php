@@ -2,7 +2,7 @@
 
 namespace App\Helper;
 
-class UrlHelper
+final readonly class UrlHelper
 {
     /**
      * Aggressively normalize url:

@@ -22,19 +22,34 @@ use Symfony\Component\Uid\UuidV7;
         new OA\Property(property: '@iri', type: 'string', format: 'iri', description: 'IRI of the account resource'),
         new OA\Property(property: 'username', type: 'string', description: 'Account username'),
         new OA\Property(property: 'instance', type: 'string', description: 'Instance domain where the account is hosted'),
+        new OA\Property(property: 'inboxUrl', type: 'string', format: 'uri', nullable: true, description: 'ActivityPub inbox URL'),
+        new OA\Property(property: 'outboxUrl', type: 'string', format: 'uri', nullable: true, description: 'ActivityPub outbox URL'),
+        new OA\Property(property: 'sharedInboxUrl', type: 'string', format: 'uri', nullable: true, description: 'ActivityPub shared inbox URL'),
+        new OA\Property(property: 'followerUrl', type: 'string', format: 'uri', nullable: true, description: 'ActivityPub followers collection URL'),
+        new OA\Property(property: 'followingUrl', type: 'string', format: 'uri', nullable: true, description: 'ActivityPub following collection URL'),
     ]
 )]
 #[UniqueEntity('uri')]
 #[ORM\Entity(repositoryClass: AccountRepository::class)]
 class Account
 {
+    // https://regex101.com/r/ZwW3p1/2 TODO at some point we should allow more domain characters (same goes with username)
+    public const string USERNAME_REGEX = '@?([a-zA-Z0-9_-]+)';
+    public const string HOST_REGEX = '@([a-zA-Z0-9_.-]+)';
+    public const string ACCOUNT_REGEX = '^' . self::USERNAME_REGEX . '(?:' . self::HOST_REGEX . ')?$';
+
     /**
-     * @var array<string, string>
+     * @var array<string, string|null>
      */
     public const array EXAMPLE_ACCOUNT = [
-        '@iri' => 'https://bookmarkhive.test/profile/johndoe',
-        'username' => 'johndoe',
+        '@iri' => 'https://bookmarkhive.test/profile/janedoe',
+        'username' => 'janedoe',
         'instance' => 'bookmarkhive.test',
+        'inboxUrl' => 'https://bookmarkhive.test/profile/janedoe/inbox',
+        'outboxUrl' => 'https://bookmarkhive.test/profile/janedoe/outbox',
+        'sharedInboxUrl' => 'https://bookmarkhive.test/inbox',
+        'followerUrl' => 'https://bookmarkhive.test/profile/janedoe/followers',
+        'followingUrl' => 'https://bookmarkhive.test/profile/janedoe/following',
     ];
 
     #[ORM\Id, ORM\Column(type: 'uuid')]
@@ -49,18 +64,42 @@ class Account
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     public ?string $privateKey = null;
 
-    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:public', 'user:show:private', 'account:show:public'])]
+    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:private', 'account:show:public'])]
     #[SerializedName('@iri')]
     #[ORM\Column(type: Types::TEXT)]
     public string $uri;
 
-    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:public', 'user:show:private', 'account:show:public'])]
+    public string $keyId {
+        get => $this->uri . '#main-key';
+    }
+
+    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:private', 'account:show:public'])]
     #[ORM\Column]
     public string $username;
 
-    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:public', 'user:show:private', 'account:show:public'])]
+    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:private', 'account:show:public'])]
     #[ORM\Column]
     public string $instance;
+
+    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:private', 'account:show:public'])]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    public ?string $inboxUrl = null;
+
+    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:private', 'account:show:public'])]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    public ?string $outboxUrl = null;
+
+    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:private', 'account:show:public'])]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    public ?string $sharedInboxUrl = null;
+
+    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:private', 'account:show:public'])]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    public ?string $followerUrl = null;
+
+    #[Groups(['bookmark:show:public', 'bookmark:show:private', 'user:show:private', 'account:show:public'])]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    public ?string $followingUrl = null;
 
     public \DateTimeImmutable $createdAt {
         get => new UuidV7($this->id)->getDateTime();

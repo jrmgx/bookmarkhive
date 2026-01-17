@@ -27,4 +27,14 @@ class AccountRepository extends ServiceEntityRepository
             ->getOneOrNullResult()
         ;
     }
+
+    public function findOneByUri(string $uri): ?Account
+    {
+        return $this->createQueryBuilder('o')
+            ->andWhere('o.uri = :uri')
+            ->setParameter('uri', $uri)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
+    }
 }

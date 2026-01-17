@@ -19,7 +19,7 @@ class FollowingTest extends BaseApiTestCase
         $this->request('GET', '/users/me/following', ['auth_bearer' => $token]);
         $this->assertResponseIsSuccessful();
 
-        $json = $this->getResponseArray();
+        $json = $this->dump($this->getResponseArray());
 
         $this->assertCount(10, $json['collection']);
         $this->assertFollowingCollection($json['collection']);
@@ -40,7 +40,7 @@ class FollowingTest extends BaseApiTestCase
         ]);
         $this->assertResponseIsSuccessful();
 
-        $json = $this->getResponseArray();
+        $json = $this->dump($this->getResponseArray());
 
         $this->assertIsString($json['id']);
         $this->assertArrayHasKey('account', $json);
@@ -52,7 +52,7 @@ class FollowingTest extends BaseApiTestCase
         // Verify it appears in the list
         $this->request('GET', '/users/me/following', ['auth_bearer' => $token]);
         $this->assertResponseIsSuccessful();
-        $listJson = $this->getResponseArray();
+        $listJson = $this->dump($this->getResponseArray());
         $this->assertGreaterThanOrEqual(1, \count($listJson['collection']));
     }
 
@@ -80,7 +80,7 @@ class FollowingTest extends BaseApiTestCase
         // Verify it's removed from the list
         $this->request('GET', '/users/me/following', ['auth_bearer' => $token]);
         $this->assertResponseIsSuccessful();
-        $listJson = $this->getResponseArray();
+        $listJson = $this->dump($this->getResponseArray());
         $followingIds = array_column($listJson['collection'], 'id');
         $this->assertNotContains($following->id, $followingIds, 'Following should be removed from the list');
     }
@@ -104,12 +104,24 @@ class FollowingTest extends BaseApiTestCase
         );
 
         // Assert account structure
-        $this->assertArrayHasKey('username', $json['account']);
+        $accountFields = array_keys($json['account']);
+        $expectedAccountFields = ['username', '@iri', 'instance', 'inboxUrl', 'outboxUrl', 'sharedInboxUrl', 'followerUrl', 'followingUrl'];
+        $this->assertEqualsCanonicalizing(
+            $expectedAccountFields,
+            array_values($accountFields),
+            'Account should contain exactly ' . implode(', ', $expectedAccountFields) . ' fields'
+        );
+
         $this->assertIsString($json['account']['username']);
-        $this->assertArrayHasKey('instance', $json['account']);
         $this->assertIsString($json['account']['instance']);
-        $this->assertArrayHasKey('@iri', $json['account']);
         $this->assertValidUrl($json['account']['@iri'], 'account @iri should be a valid URL');
+
+        // URL fields are nullable, but if present should be valid URLs
+        foreach (['inboxUrl', 'outboxUrl', 'sharedInboxUrl', 'followerUrl', 'followingUrl'] as $urlField) {
+            if (null !== $json['account'][$urlField]) {
+                $this->assertValidUrl($json['account'][$urlField], "account {$urlField} should be a valid URL if present");
+            }
+        }
     }
 
     /**
@@ -132,12 +144,24 @@ class FollowingTest extends BaseApiTestCase
             );
 
             // Assert account structure
-            $this->assertArrayHasKey('username', $following['account']);
+            $accountFields = array_keys($following['account']);
+            $expectedAccountFields = ['username', '@iri', 'instance', 'inboxUrl', 'outboxUrl', 'sharedInboxUrl', 'followerUrl', 'followingUrl'];
+            $this->assertEqualsCanonicalizing(
+                $expectedAccountFields,
+                array_values($accountFields),
+                'Account should contain exactly ' . implode(', ', $expectedAccountFields) . ' fields'
+            );
+
             $this->assertIsString($following['account']['username']);
-            $this->assertArrayHasKey('instance', $following['account']);
             $this->assertIsString($following['account']['instance']);
-            $this->assertArrayHasKey('@iri', $following['account']);
             $this->assertValidUrl($following['account']['@iri'], 'account @iri should be a valid URL');
+
+            // URL fields are nullable, but if present should be valid URLs
+            foreach (['inboxUrl', 'outboxUrl', 'sharedInboxUrl', 'followerUrl', 'followingUrl'] as $urlField) {
+                if (null !== $following['account'][$urlField]) {
+                    $this->assertValidUrl($following['account'][$urlField], "account {$urlField} should be a valid URL if present");
+                }
+            }
         }
     }
 }

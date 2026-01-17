@@ -17,7 +17,7 @@ final class UserVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return \in_array($attribute, [self::PUBLIC]) && $subject instanceof User;
+        return self::PUBLIC === $attribute && $subject instanceof User;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool

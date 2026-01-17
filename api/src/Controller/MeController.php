@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpRedundantCatchClauseInspection */
+
 namespace App\Controller;
 
 use App\Config\RouteAction;
@@ -49,7 +51,7 @@ final class MeController extends AbstractController
                         new OA\Examples(
                             example: 'user_profile',
                             value: [
-                                'username' => 'johndoe',
+                                'username' => 'janedoe',
                                 'isPublic' => true,
                                 'meta' => ['theme' => 'dark', 'language' => 'en'],
                                 'account' => Account::EXAMPLE_ACCOUNT,

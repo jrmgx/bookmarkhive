@@ -10,6 +10,7 @@ use App\Helper\PaginationHelper;
 use App\Repository\BookmarkRepository;
 use App\Response\JsonResponseBuilder;
 use App\Service\IndexActionUpdater;
+use App\Service\InstanceTagService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -29,6 +30,7 @@ abstract class BookmarkController extends AbstractController
         protected readonly JsonResponseBuilder $jsonResponseBuilder,
         protected readonly MessageBusInterface $messageBus,
         protected readonly IndexActionUpdater $indexActionUpdater,
+        protected readonly InstanceTagService $instanceTagService,
     ) {
     }
 
@@ -39,7 +41,6 @@ abstract class BookmarkController extends AbstractController
     public function collectionCommon(
         Account $account,
         ?string $tagQueryString,
-        ?string $searchQueryString,
         ?string $afterQueryString,
         array $groups,
         RouteType $routeType,

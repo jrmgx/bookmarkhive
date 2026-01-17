@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 namespace App\Security\Voter;
 
-use App\Entity\Tag;
 use App\Entity\User;
+use App\Entity\UserTag;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
- * @extends Voter<string, Tag>
+ * @extends Voter<string, UserTag>
  */
-final class TagVoter extends Voter
+final class UserTagVoter extends Voter
 {
     public const string OWNER = 'TAG_OWNER';
     public const string PUBLIC = 'TAG_PUBLIC';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return \in_array($attribute, [self::OWNER]) && $subject instanceof Tag; // TODO simplify
+        return self::OWNER === $attribute && $subject instanceof UserTag;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
     {
-        /** @var Tag $tag */
-        $tag = $subject;
+        /** @var UserTag $userTag */
+        $userTag = $subject;
 
         if (self::OWNER === $attribute) {
             $user = $token->getUser();
@@ -34,7 +34,7 @@ final class TagVoter extends Voter
                 return false;
             }
 
-            return $tag->owner === $user;
+            return $userTag->owner === $user;
         }
 
         return false;

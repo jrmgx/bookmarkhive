@@ -47,8 +47,8 @@
                                 "type": "object"
                             },
                             "example": {
-                                "username": "johndoe",
-                                "password": "password123"
+                                "username": "janedoe",
+                                "password": "password"
                             }
                         }
                     }
@@ -106,14 +106,6 @@
                         }
                     },
                     {
-                        "name": "q",
-                        "in": "query",
-                        "description": "Search query string",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
                         "name": "after",
                         "in": "query",
                         "description": "Cursor for pagination - bookmark ID to fetch results after",
@@ -165,9 +157,14 @@
                                                     "url": "https://example.com",
                                                     "domain": "example.com",
                                                     "account": {
-                                                        "@iri": "https://bookmarkhive.test/profile/johndoe",
-                                                        "username": "johndoe",
-                                                        "instance": "bookmarkhive.test"
+                                                        "@iri": "https://bookmarkhive.test/profile/janedoe",
+                                                        "username": "janedoe",
+                                                        "instance": "bookmarkhive.test",
+                                                        "inboxUrl": "https://bookmarkhive.test/profile/janedoe/inbox",
+                                                        "outboxUrl": "https://bookmarkhive.test/profile/janedoe/outbox",
+                                                        "sharedInboxUrl": "https://bookmarkhive.test/inbox",
+                                                        "followerUrl": "https://bookmarkhive.test/profile/janedoe/followers",
+                                                        "followingUrl": "https://bookmarkhive.test/profile/janedoe/following"
                                                     },
                                                     "isPublic": true,
                                                     "tags": [
@@ -213,48 +210,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "title",
-                                    "url"
-                                ],
-                                "properties": {
-                                    "title": {
-                                        "description": "Bookmark title",
-                                        "type": "string"
-                                    },
-                                    "url": {
-                                        "description": "Bookmark URL",
-                                        "type": "string",
-                                        "format": "uri"
-                                    },
-                                    "isPublic": {
-                                        "description": "Whether the bookmark is public",
-                                        "type": "boolean",
-                                        "default": false
-                                    },
-                                    "tags": {
-                                        "description": "Array of tag IRIs (must be valid IRIs pointing to existing tags owned by the user)",
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "format": "iri",
-                                            "example": "https://bookmarkhive.test/users/me/tags/web-development"
-                                        }
-                                    },
-                                    "mainImage": {
-                                        "description": "IRI of main image FileObject",
-                                        "type": "string",
-                                        "format": "iri",
-                                        "nullable": true
-                                    },
-                                    "archive": {
-                                        "description": "IRI of archive FileObject",
-                                        "type": "string",
-                                        "format": "iri",
-                                        "nullable": true
-                                    }
-                                },
-                                "type": "object"
+                                "$ref": "#/components/schemas/BookmarkCreate"
                             }
                         }
                     }
@@ -277,9 +233,14 @@
                                             "url": "https://example.com",
                                             "domain": "example.com",
                                             "account": {
-                                                "@iri": "https://bookmarkhive.test/profile/johndoe",
-                                                "username": "johndoe",
-                                                "instance": "bookmarkhive.test"
+                                                "@iri": "https://bookmarkhive.test/profile/janedoe",
+                                                "username": "janedoe",
+                                                "instance": "bookmarkhive.test",
+                                                "inboxUrl": "https://bookmarkhive.test/profile/janedoe/inbox",
+                                                "outboxUrl": "https://bookmarkhive.test/profile/janedoe/outbox",
+                                                "sharedInboxUrl": "https://bookmarkhive.test/inbox",
+                                                "followerUrl": "https://bookmarkhive.test/profile/janedoe/followers",
+                                                "followingUrl": "https://bookmarkhive.test/profile/janedoe/following"
                                             },
                                             "isPublic": false,
                                             "tags": [
@@ -443,43 +404,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "properties": {
-                                    "title": {
-                                        "description": "New bookmark title",
-                                        "type": "string"
-                                    },
-                                    "url": {
-                                        "description": "Ignored - URL cannot be changed after creation",
-                                        "type": "string",
-                                        "format": "uri",
-                                        "deprecated": true
-                                    },
-                                    "isPublic": {
-                                        "description": "Whether the bookmark is public",
-                                        "type": "boolean"
-                                    },
-                                    "tags": {
-                                        "description": "Array of tag IRIs. If omitted, existing tags are preserved.",
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "format": "iri"
-                                        }
-                                    },
-                                    "mainImage": {
-                                        "description": "IRI of main image FileObject",
-                                        "type": "string",
-                                        "format": "iri",
-                                        "nullable": true
-                                    },
-                                    "archive": {
-                                        "description": "IRI of archive FileObject",
-                                        "type": "string",
-                                        "format": "iri",
-                                        "nullable": true
-                                    }
-                                },
-                                "type": "object"
+                                "$ref": "#/components/schemas/BookmarkUpdate"
                             }
                         }
                     }
@@ -717,16 +642,21 @@
                                     "user_profile": {
                                         "summary": "Current user profile",
                                         "value": {
-                                            "username": "johndoe",
+                                            "username": "janedoe",
                                             "isPublic": true,
                                             "meta": {
                                                 "theme": "dark",
                                                 "language": "en"
                                             },
                                             "account": {
-                                                "@iri": "https://bookmarkhive.test/profile/johndoe",
-                                                "username": "johndoe",
-                                                "instance": "bookmarkhive.test"
+                                                "@iri": "https://bookmarkhive.test/profile/janedoe",
+                                                "username": "janedoe",
+                                                "instance": "bookmarkhive.test",
+                                                "inboxUrl": "https://bookmarkhive.test/profile/janedoe/inbox",
+                                                "outboxUrl": "https://bookmarkhive.test/profile/janedoe/outbox",
+                                                "sharedInboxUrl": "https://bookmarkhive.test/inbox",
+                                                "followerUrl": "https://bookmarkhive.test/profile/janedoe/followers",
+                                                "followingUrl": "https://bookmarkhive.test/profile/janedoe/following"
                                             },
                                             "@iri": "https://bookmarkhive.test/users/me"
                                         }
@@ -1021,9 +951,14 @@
                                                 {
                                                     "id": "01234567-89ab-cdef-0123-456789abcdef",
                                                     "account": {
-                                                        "@iri": "https://bookmarkhive.test/profile/johndoe",
-                                                        "username": "johndoe",
-                                                        "instance": "bookmarkhive.test"
+                                                        "@iri": "https://bookmarkhive.test/profile/janedoe",
+                                                        "username": "janedoe",
+                                                        "instance": "bookmarkhive.test",
+                                                        "inboxUrl": "https://bookmarkhive.test/profile/janedoe/inbox",
+                                                        "outboxUrl": "https://bookmarkhive.test/profile/janedoe/outbox",
+                                                        "sharedInboxUrl": "https://bookmarkhive.test/inbox",
+                                                        "followerUrl": "https://bookmarkhive.test/profile/janedoe/followers",
+                                                        "followingUrl": "https://bookmarkhive.test/profile/janedoe/following"
                                                     },
                                                     "createdAt": "2024-01-01T12:00:00+00:00"
                                                 }
@@ -1105,9 +1040,14 @@
                                                 {
                                                     "id": "01234567-89ab-cdef-0123-456789abcdef",
                                                     "account": {
-                                                        "@iri": "https://bookmarkhive.test/profile/johndoe",
-                                                        "username": "johndoe",
-                                                        "instance": "bookmarkhive.test"
+                                                        "@iri": "https://bookmarkhive.test/profile/janedoe",
+                                                        "username": "janedoe",
+                                                        "instance": "bookmarkhive.test",
+                                                        "inboxUrl": "https://bookmarkhive.test/profile/janedoe/inbox",
+                                                        "outboxUrl": "https://bookmarkhive.test/profile/janedoe/outbox",
+                                                        "sharedInboxUrl": "https://bookmarkhive.test/inbox",
+                                                        "followerUrl": "https://bookmarkhive.test/profile/janedoe/followers",
+                                                        "followingUrl": "https://bookmarkhive.test/profile/janedoe/following"
                                                     },
                                                     "createdAt": "2024-01-01T12:00:00+00:00"
                                                 }
@@ -1148,7 +1088,7 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "example": "johndoe@bookmarkhive.test"
+                            "example": "janedoe@bookmarkhive.test"
                         }
                     }
                 ],
@@ -1166,9 +1106,14 @@
                                         "value": {
                                             "id": "01234567-89ab-cdef-0123-456789abcdef",
                                             "account": {
-                                                "@iri": "https://bookmarkhive.test/profile/johndoe",
-                                                "username": "johndoe",
-                                                "instance": "bookmarkhive.test"
+                                                "@iri": "https://bookmarkhive.test/profile/janedoe",
+                                                "username": "janedoe",
+                                                "instance": "bookmarkhive.test",
+                                                "inboxUrl": "https://bookmarkhive.test/profile/janedoe/inbox",
+                                                "outboxUrl": "https://bookmarkhive.test/profile/janedoe/outbox",
+                                                "sharedInboxUrl": "https://bookmarkhive.test/inbox",
+                                                "followerUrl": "https://bookmarkhive.test/profile/janedoe/followers",
+                                                "followingUrl": "https://bookmarkhive.test/profile/janedoe/following"
                                             },
                                             "createdAt": "2024-01-01T12:00:00+00:00"
                                         }
@@ -1182,6 +1127,9 @@
                     },
                     "404": {
                         "description": "Account not found"
+                    },
+                    "409": {
+                        "description": "Conflict - follow request already exist"
                     }
                 },
                 "security": [
@@ -1205,7 +1153,7 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "example": "johndoe@bookmarkhive.test"
+                            "example": "janedoe@bookmarkhive.test"
                         }
                     }
                 ],
@@ -1299,32 +1247,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "name"
-                                ],
-                                "properties": {
-                                    "name": {
-                                        "description": "Tag name (slug is auto-generated from name)",
-                                        "type": "string",
-                                        "maxLength": 32
-                                    },
-                                    "slug": {
-                                        "description": "Ignored - slug is automatically generated from name",
-                                        "type": "string",
-                                        "deprecated": true
-                                    },
-                                    "isPublic": {
-                                        "description": "Whether the tag is public",
-                                        "type": "boolean",
-                                        "default": false
-                                    },
-                                    "meta": {
-                                        "description": "Additional metadata as key-value pairs",
-                                        "type": "object",
-                                        "additionalProperties": true
-                                    }
-                                },
-                                "type": "object"
+                                "$ref": "#/components/schemas/TagCreate"
                             }
                         }
                     }
@@ -1498,23 +1421,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "properties": {
-                                    "name": {
-                                        "description": "New tag name",
-                                        "type": "string",
-                                        "maxLength": 32
-                                    },
-                                    "isPublic": {
-                                        "description": "Whether the tag is public",
-                                        "type": "boolean"
-                                    },
-                                    "meta": {
-                                        "description": "Additional metadata as key-value pairs (merged with existing)",
-                                        "type": "object",
-                                        "additionalProperties": true
-                                    }
-                                },
-                                "type": "object"
+                                "$ref": "#/components/schemas/TagUpdate"
                             }
                         }
                     }
@@ -1593,14 +1500,6 @@
                         "schema": {
                             "type": "string",
                             "example": "tag-one,tag-two"
-                        }
-                    },
-                    {
-                        "name": "q",
-                        "in": "query",
-                        "description": "Search query string",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     {
@@ -1770,9 +1669,14 @@
                                     "public_profile": {
                                         "summary": "Public user profile",
                                         "value": {
-                                            "@iri": "https://bookmarkhive.test/profile/johndoe",
-                                            "username": "johndoe",
-                                            "instance": "bookmarkhive.test"
+                                            "@iri": "https://bookmarkhive.test/profile/janedoe",
+                                            "username": "janedoe",
+                                            "instance": "bookmarkhive.test",
+                                            "inboxUrl": "https://bookmarkhive.test/profile/janedoe/inbox",
+                                            "outboxUrl": "https://bookmarkhive.test/profile/janedoe/outbox",
+                                            "sharedInboxUrl": "https://bookmarkhive.test/inbox",
+                                            "followerUrl": "https://bookmarkhive.test/profile/janedoe/followers",
+                                            "followingUrl": "https://bookmarkhive.test/profile/janedoe/following"
                                         }
                                     }
                                 }
@@ -1941,6 +1845,10 @@
                         "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/UserCreate"
+                            },
+                            "example": {
+                                "username": "janedoe",
+                                "password": "password"
                             }
                         }
                     }
@@ -1957,13 +1865,18 @@
                                     "success": {
                                         "summary": "Successfully created user account",
                                         "value": {
-                                            "username": "johndoe",
+                                            "username": "janedoe",
                                             "isPublic": false,
                                             "meta": [],
                                             "account": {
-                                                "@iri": "https://bookmarkhive.test/profile/johndoe",
-                                                "username": "johndoe",
-                                                "instance": "bookmarkhive.test"
+                                                "@iri": "https://bookmarkhive.test/profile/janedoe",
+                                                "username": "janedoe",
+                                                "instance": "bookmarkhive.test",
+                                                "inboxUrl": "https://bookmarkhive.test/profile/janedoe/inbox",
+                                                "outboxUrl": "https://bookmarkhive.test/profile/janedoe/outbox",
+                                                "sharedInboxUrl": "https://bookmarkhive.test/inbox",
+                                                "followerUrl": "https://bookmarkhive.test/profile/janedoe/followers",
+                                                "followingUrl": "https://bookmarkhive.test/profile/janedoe/following"
                                             },
                                             "@iri": "https://bookmarkhive.test/users/me"
                                         }
@@ -2078,6 +1991,129 @@
                 },
                 "type": "object"
             },
+            "BookmarkCreate": {
+                "description": "Bookmark creation data",
+                "required": [
+                    "title",
+                    "url"
+                ],
+                "properties": {
+                    "title": {
+                        "description": "Bookmark title",
+                        "type": "string"
+                    },
+                    "url": {
+                        "description": "Bookmark URL",
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "isPublic": {
+                        "description": "Whether the bookmark is public",
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "tags": {
+                        "description": "Array of tag IRIs (must be valid IRIs pointing to existing tags owned by the user)",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri",
+                            "example": "https://bookmarkhive.test/users/me/tags/web-development"
+                        }
+                    },
+                    "mainImage": {
+                        "description": "IRI of main image FileObject",
+                        "type": "string",
+                        "format": "iri",
+                        "nullable": true
+                    },
+                    "archive": {
+                        "description": "IRI of archive FileObject",
+                        "type": "string",
+                        "format": "iri",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "BookmarkUpdate": {
+                "description": "Bookmark update data",
+                "properties": {
+                    "title": {
+                        "description": "New bookmark title",
+                        "type": "string"
+                    },
+                    "isPublic": {
+                        "description": "Whether the bookmark is public",
+                        "type": "boolean"
+                    },
+                    "tags": {
+                        "description": "Array of tag IRIs. If omitted, existing tags are preserved.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri"
+                        }
+                    },
+                    "mainImage": {
+                        "description": "IRI of main image FileObject",
+                        "type": "string",
+                        "format": "iri",
+                        "nullable": true
+                    },
+                    "archive": {
+                        "description": "IRI of archive FileObject",
+                        "type": "string",
+                        "format": "iri",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "TagCreate": {
+                "description": "Tag creation data",
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "name": {
+                        "description": "Tag name (slug is auto-generated from name)",
+                        "type": "string",
+                        "maxLength": 32
+                    },
+                    "isPublic": {
+                        "description": "Whether the tag is public",
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "meta": {
+                        "description": "Additional metadata as key-value pairs",
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "type": "object"
+            },
+            "TagUpdate": {
+                "description": "Tag update data",
+                "properties": {
+                    "name": {
+                        "description": "New tag name",
+                        "type": "string",
+                        "maxLength": 32
+                    },
+                    "isPublic": {
+                        "description": "Whether the tag is public",
+                        "type": "boolean"
+                    },
+                    "meta": {
+                        "description": "Additional metadata as key-value pairs (merged with existing)",
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "type": "object"
+            },
             "AccountShowPublic": {
                 "description": "Account object representing an ActivityPub account",
                 "properties": {
@@ -2093,6 +2129,36 @@
                     "instance": {
                         "description": "Instance domain where the account is hosted",
                         "type": "string"
+                    },
+                    "inboxUrl": {
+                        "description": "ActivityPub inbox URL",
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                    },
+                    "outboxUrl": {
+                        "description": "ActivityPub outbox URL",
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                    },
+                    "sharedInboxUrl": {
+                        "description": "ActivityPub shared inbox URL",
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                    },
+                    "followerUrl": {
+                        "description": "ActivityPub followers collection URL",
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                    },
+                    "followingUrl": {
+                        "description": "ActivityPub following collection URL",
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -2331,53 +2397,6 @@
                 },
                 "type": "object"
             },
-            "TagShowPrivate": {
-                "description": "Tag object with owner-level details",
-                "properties": {
-                    "name": {
-                        "description": "Tag name",
-                        "type": "string"
-                    },
-                    "slug": {
-                        "description": "Tag slug",
-                        "type": "string"
-                    },
-                    "meta": {
-                        "description": "Additional metadata",
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "isPublic": {
-                        "description": "Whether the tag is public",
-                        "type": "boolean"
-                    },
-                    "@iri": {
-                        "description": "IRI of the tag resource",
-                        "type": "string",
-                        "format": "iri"
-                    }
-                },
-                "type": "object"
-            },
-            "TagShowPublic": {
-                "description": "Public tag information",
-                "properties": {
-                    "name": {
-                        "description": "Tag name",
-                        "type": "string"
-                    },
-                    "slug": {
-                        "description": "Tag slug",
-                        "type": "string"
-                    },
-                    "@iri": {
-                        "description": "IRI of the tag resource",
-                        "type": "string",
-                        "format": "iri"
-                    }
-                },
-                "type": "object"
-            },
             "UserShowPrivate": {
                 "description": "User object with owner-level details",
                 "properties": {
@@ -2393,24 +2412,6 @@
                         "description": "Additional metadata",
                         "type": "object",
                         "additionalProperties": true
-                    },
-                    "account": {
-                        "$ref": "#/components/schemas/AccountShowPublic"
-                    },
-                    "@iri": {
-                        "description": "IRI of the user resource",
-                        "type": "string",
-                        "format": "iri"
-                    }
-                },
-                "type": "object"
-            },
-            "UserShowPublic": {
-                "description": "Public user profile",
-                "properties": {
-                    "username": {
-                        "description": "Username",
-                        "type": "string"
                     },
                     "account": {
                         "$ref": "#/components/schemas/AccountShowPublic"
@@ -2450,6 +2451,53 @@
                         "description": "Additional metadata",
                         "type": "object",
                         "additionalProperties": true
+                    }
+                },
+                "type": "object"
+            },
+            "TagShowPublic": {
+                "description": "Public tag information",
+                "properties": {
+                    "name": {
+                        "description": "Tag name",
+                        "type": "string"
+                    },
+                    "slug": {
+                        "description": "Tag slug",
+                        "type": "string"
+                    },
+                    "@iri": {
+                        "description": "IRI of the tag resource",
+                        "type": "string",
+                        "format": "iri"
+                    }
+                },
+                "type": "object"
+            },
+            "TagShowPrivate": {
+                "description": "Tag object with owner-level details",
+                "properties": {
+                    "name": {
+                        "description": "Tag name",
+                        "type": "string"
+                    },
+                    "slug": {
+                        "description": "Tag slug",
+                        "type": "string"
+                    },
+                    "meta": {
+                        "description": "Additional metadata",
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "isPublic": {
+                        "description": "Whether the tag is public",
+                        "type": "boolean"
+                    },
+                    "@iri": {
+                        "description": "IRI of the tag resource",
+                        "type": "string",
+                        "format": "iri"
                     }
                 },
                 "type": "object"

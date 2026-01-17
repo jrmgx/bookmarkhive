@@ -35,6 +35,7 @@ class FileObject
     #[Groups(['file_object:read', 'bookmark:show:private', 'bookmark:show:public'])]
     public ?string $contentUrl = null;
 
+    /** @var int Size in bytes */
     #[Groups(['file_object:read', 'bookmark:show:private', 'bookmark:show:public'])]
     #[ORM\Column]
     public int $size;

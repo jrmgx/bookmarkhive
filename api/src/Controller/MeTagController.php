@@ -1,12 +1,16 @@
 <?php
 
+/** @noinspection PhpRedundantCatchClauseInspection */
+
 namespace App\Controller;
 
 use App\Config\RouteAction;
 use App\Config\RouteType;
-use App\Entity\Tag;
+use App\Dto\UserTagApiDto;
+use App\Entity\InstanceTag;
 use App\Entity\User;
-use App\Security\Voter\TagVoter;
+use App\Entity\UserTag;
+use App\Security\Voter\UserTagVoter;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\ORMInvalidArgumentException;
 use OpenApi\Attributes as OA;
@@ -14,6 +18,7 @@ use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Routing\Attribute\Route;
@@ -50,7 +55,7 @@ final class MeTagController extends TagController
                             value: [
                                 'collection' => [
                                     [
-                                        ...Tag::EXAMPLE_TAG,
+                                        ...UserTag::EXAMPLE_TAG,
                                         'meta' => ['color' => 'blue'],
                                         'isPublic' => true,
                                     ],
@@ -108,11 +113,12 @@ final class MeTagController extends TagController
         ]
     )]
     #[Route(path: '/{slug}', name: RouteAction::Get->value, methods: ['GET'])]
-    #[IsGranted(attribute: TagVoter::OWNER, subject: 'tag', statusCode: Response::HTTP_NOT_FOUND)]
+    #[IsGranted(attribute: UserTagVoter::OWNER, subject: 'userTag', statusCode: Response::HTTP_NOT_FOUND)]
     public function get(
-        #[MapEntity(mapping: ['slug' => 'slug'])] Tag $tag,
+        #[CurrentUser] User $user,
+        #[MapEntity(mapping: ['slug' => 'slug'])] UserTag $userTag,
     ): JsonResponse {
-        return $this->jsonResponseBuilder->single($tag, ['tag:show:private']);
+        return $this->jsonResponseBuilder->single($userTag, ['tag:show:private']);
     }
 
     #[OA\Post(
@@ -125,16 +131,7 @@ final class MeTagController extends TagController
         requestBody: new OA\RequestBody(
             required: true,
             description: 'Tag data',
-            content: new OA\JsonContent(
-                type: 'object',
-                required: ['name'],
-                properties: [
-                    new OA\Property(property: 'name', type: 'string', maxLength: 32, description: 'Tag name (slug is auto-generated from name)'),
-                    new OA\Property(property: 'slug', type: 'string', description: 'Ignored - slug is automatically generated from name', deprecated: true),
-                    new OA\Property(property: 'isPublic', type: 'boolean', description: 'Whether the tag is public', default: false),
-                    new OA\Property(property: 'meta', type: 'object', description: 'Additional metadata as key-value pairs', additionalProperties: true),
-                ]
-            )
+            content: new OA\JsonContent(ref: '#/components/schemas/TagCreate')
         ),
         responses: [
             new OA\Response(
@@ -146,7 +143,7 @@ final class MeTagController extends TagController
                         new OA\Examples(
                             example: 'created_tag',
                             value: [
-                                ...Tag::EXAMPLE_TAG,
+                                ...UserTag::EXAMPLE_TAG,
                                 'meta' => [],
                                 'isPublic' => false,
                             ],
@@ -155,7 +152,7 @@ final class MeTagController extends TagController
                         new OA\Examples(
                             example: 'existing_tag',
                             value: [
-                                ...Tag::EXAMPLE_TAG,
+                                ...UserTag::EXAMPLE_TAG,
                                 'meta' => ['color' => 'blue'],
                                 'isPublic' => true,
                             ],
@@ -191,29 +188,43 @@ final class MeTagController extends TagController
             serializationContext: ['groups' => ['tag:create']],
             validationGroups: ['Default', 'tag:create'],
         )]
-        Tag $tag,
+        UserTagApiDto $tagPayload,
     ): JsonResponse {
-        if ($this->tagRepository->countByOwner($user) >= 1000) {
+        if ($this->userTagRepository->countByOwner($user) >= 1000) {
             throw new UnprocessableEntityHttpException('You have reached the 1000 tags limit.');
         }
 
-        $existing = $this->tagRepository->findOneByOwnerAndSlug($user, $tag->slug, onlyPublic: false)
+        $userTag = new UserTag();
+        $userTag->name = $tagPayload->name;
+        $userTag->isPublic = $tagPayload->isPublic ?? false;
+        $userTag->meta = $tagPayload->meta;
+        $userTag->owner = $user;
+
+        /** @noinspection PhpTypedPropertyMightBeUninitializedInspection */
+        $existing = $this->userTagRepository->findOneByOwnerAndSlug($user, $userTag->slug, onlyPublic: false)
             ->getQuery()
             ->getOneOrNullResult()
         ;
-        if (!$existing) {
-            $existing = $tag;
-            $tag->owner = $user;
-
-            try {
-                $this->entityManager->persist($tag);
-                $this->entityManager->flush();
-            } catch (ORMInvalidArgumentException|ORMException $e) {
-                throw new UnprocessableEntityHttpException(previous: $e);
-            }
+        if ($existing) {
+            return $this->jsonResponseBuilder->single($existing, ['tag:show:private']);
         }
 
-        return $this->jsonResponseBuilder->single($existing, ['tag:show:private']);
+        $instanceTag = $this->instanceTagRepository->findBySlug($userTag->slug);
+        if (!$instanceTag) {
+            // Create the tag on the instance if it does not exist
+            $instanceTag = new InstanceTag();
+            $instanceTag->name = $tagPayload->name ?? throw new BadRequestHttpException();
+            $this->entityManager->persist($instanceTag);
+        }
+
+        try {
+            $this->entityManager->persist($userTag);
+            $this->entityManager->flush();
+        } catch (ORMInvalidArgumentException|ORMException $e) {
+            throw new UnprocessableEntityHttpException(previous: $e);
+        }
+
+        return $this->jsonResponseBuilder->single($userTag, ['tag:show:private']);
     }
 
     #[OA\Patch(
@@ -233,14 +244,7 @@ final class MeTagController extends TagController
         requestBody: new OA\RequestBody(
             required: false,
             description: 'Tag update data',
-            content: new OA\JsonContent(
-                type: 'object',
-                properties: [
-                    new OA\Property(property: 'name', type: 'string', maxLength: 32, description: 'New tag name'),
-                    new OA\Property(property: 'isPublic', type: 'boolean', description: 'Whether the tag is public'),
-                    new OA\Property(property: 'meta', type: 'object', description: 'Additional metadata as key-value pairs (merged with existing)', additionalProperties: true),
-                ]
-            )
+            content: new OA\JsonContent(ref: '#/components/schemas/TagUpdate')
         ),
         responses: [
             new OA\Response(
@@ -279,31 +283,39 @@ final class MeTagController extends TagController
         ]
     )]
     #[Route(path: '/{slug}', name: RouteAction::Patch->value, methods: ['PATCH'])]
-    #[IsGranted(attribute: TagVoter::OWNER, subject: 'tag', statusCode: Response::HTTP_NOT_FOUND)]
+    #[IsGranted(attribute: UserTagVoter::OWNER, subject: 'userTag', statusCode: Response::HTTP_NOT_FOUND)]
     public function patch(
         #[CurrentUser] User $user,
-        #[MapEntity(mapping: ['slug' => 'slug'])] Tag $tag,
+        #[MapEntity(mapping: ['slug' => 'slug'])] UserTag $userTag,
         #[MapRequestPayload(
             serializationContext: ['groups' => ['tag:update']],
             validationGroups: ['Default', 'tag:update'],
         )]
-        Tag $tagPayload,
+        UserTagApiDto $tagPayload,
     ): JsonResponse {
-        // Manual merge
-        if (isset($tagPayload->name) && $tag->name !== $tagPayload->name) {
-            $tag->name = $tagPayload->name;
-            if ($this->tagRepository->findOneByOwnerAndSlug($user, $tag->slug, onlyPublic: false)
+        if (isset($tagPayload->name) && $userTag->name !== $tagPayload->name) {
+            if ($this->userTagRepository->findOneByOwnerAndSlug($user, $tagPayload->slug, onlyPublic: false)
                 ->getQuery()
                 ->getOneOrNullResult()) {
                 throw new ConflictHttpException();
             }
+
+            $userTag->name = $tagPayload->name;
+            $instanceTag = $this->instanceTagRepository->findBySlug($userTag->slug);
+            if (!$instanceTag) {
+                // Create the tag on the instance if it does not exist
+                $instanceTag = new InstanceTag();
+                $instanceTag->name = $tagPayload->name;
+                $this->entityManager->persist($instanceTag);
+            }
         }
-        // Update isPublic if provided
+
         if (isset($tagPayload->isPublic)) {
-            $tag->isPublic = $tagPayload->isPublic;
+            $userTag->isPublic = $tagPayload->isPublic;
         }
+
         // Meta is merge only
-        $tag->meta = array_merge($tag->meta, $tagPayload->meta);
+        $userTag->meta = array_merge($userTag->meta, $tagPayload->meta);
 
         try {
             $this->entityManager->flush();
@@ -311,7 +323,7 @@ final class MeTagController extends TagController
             throw new UnprocessableEntityHttpException(previous: $e);
         }
 
-        return $this->jsonResponseBuilder->single($tag, ['tag:show:private']);
+        return $this->jsonResponseBuilder->single($userTag, ['tag:show:private']);
     }
 
     #[OA\Delete(
@@ -344,11 +356,12 @@ final class MeTagController extends TagController
         ]
     )]
     #[Route(path: '/{slug}', name: RouteAction::Delete->value, methods: ['DELETE'])]
-    #[IsGranted(attribute: TagVoter::OWNER, subject: 'tag', statusCode: Response::HTTP_NOT_FOUND)]
+    #[IsGranted(attribute: UserTagVoter::OWNER, subject: 'userTag', statusCode: Response::HTTP_NOT_FOUND)]
     public function delete(
-        #[MapEntity(mapping: ['slug' => 'slug'])] Tag $tag,
+        #[CurrentUser] User $user,
+        #[MapEntity(mapping: ['slug' => 'slug'])] UserTag $userTag,
     ): JsonResponse {
-        $this->entityManager->remove($tag);
+        $this->entityManager->remove($userTag);
         $this->entityManager->flush();
 
         return new JsonResponse(status: Response::HTTP_NO_CONTENT);

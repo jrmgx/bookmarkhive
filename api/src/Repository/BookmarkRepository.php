@@ -120,7 +120,7 @@ class BookmarkRepository extends ServiceEntityRepository
         }
 
         $qb = $qb
-            ->join('o.tags', 't')
+            ->join('o.userTags', 't')
             ->andWhere('t.slug IN (:tagSlugs)')
             ->setParameter('tagSlugs', $tagSlugs)
             ->groupBy('o.id')

@@ -5,7 +5,7 @@ namespace App\Controller;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
-class AuthController extends AbstractController
+final class AuthController extends AbstractController
 {
     /**
      * Authentication endpoint handled by Symfony security.
@@ -27,7 +27,7 @@ class AuthController extends AbstractController
                     new OA\Property(property: 'username', type: 'string', description: 'Username'),
                     new OA\Property(property: 'password', type: 'string', description: 'Password'),
                 ],
-                example: ['username' => 'johndoe', 'password' => 'password123']
+                example: ['username' => 'janedoe', 'password' => 'password']
             )
         ),
         responses: [

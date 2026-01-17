@@ -7,10 +7,10 @@ use App\Config\RouteContext;
 use App\Config\RouteType;
 use App\Entity\Bookmark;
 use App\Entity\FileObject;
-use App\Entity\Tag;
 use App\Entity\User;
+use App\Entity\UserTag;
+use App\Service\UrlGenerator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 readonly class IriNormalizer implements NormalizerInterface
@@ -18,7 +18,7 @@ readonly class IriNormalizer implements NormalizerInterface
     public function __construct(
         #[Autowire(service: 'serializer.normalizer.object')]
         private NormalizerInterface $normalizer,
-        private UrlGeneratorInterface $router,
+        private UrlGenerator $urlGenerator,
         private RouteContext $routeContext,
     ) {
     }
@@ -29,31 +29,41 @@ readonly class IriNormalizer implements NormalizerInterface
 
         if ($this->routeContext->getType()->isMe()) {
             $iri = match ($data::class) {
-                User::class => $this->router->generate(RouteType::Me->value . RouteAction::Get->value, [], UrlGeneratorInterface::ABSOLUTE_URL),
-                Bookmark::class => $this->router->generate(RouteType::MeBookmarks->value . RouteAction::Get->value, [
-                    'id' => $data->id,
-                ], UrlGeneratorInterface::ABSOLUTE_URL),
-                Tag::class => $this->router->generate(RouteType::MeTags->value . RouteAction::Get->value, [
-                    'slug' => $data->slug,
-                ], UrlGeneratorInterface::ABSOLUTE_URL),
-                FileObject::class => $this->router->generate(RouteType::MeFileObjects->value . RouteAction::Get->value, [
-                    'id' => $data->id,
-                ], UrlGeneratorInterface::ABSOLUTE_URL),
+                User::class => $this->urlGenerator->generate(RouteType::Me, RouteAction::Get),
+                Bookmark::class => $this->urlGenerator->generate(
+                    RouteType::MeBookmarks,
+                    RouteAction::Get,
+                    ['id' => $data->id],
+                ),
+                UserTag::class => $this->urlGenerator->generate(
+                    RouteType::MeTags,
+                    RouteAction::Get,
+                    ['slug' => $data->slug],
+                ),
+                FileObject::class => $this->urlGenerator->generate(
+                    RouteType::MeFileObjects,
+                    RouteAction::Get,
+                    ['id' => $data->id],
+                ),
                 default => null,
             };
         } else {
             $iri = match ($data::class) {
-                User::class => $this->router->generate(RouteType::Profile->value . RouteAction::Get->value, [
-                    'username' => $data->username,
-                ], UrlGeneratorInterface::ABSOLUTE_URL),
-                Bookmark::class => $this->router->generate(RouteType::ProfileBookmarks->value . RouteAction::Get->value, [
-                    'username' => $data->account->username,
-                    'id' => $data->id,
-                ], UrlGeneratorInterface::ABSOLUTE_URL),
-                Tag::class => $this->router->generate(RouteType::ProfileTags->value . RouteAction::Get->value, [
-                    'username' => $data->owner->username,
-                    'slug' => $data->slug,
-                ], UrlGeneratorInterface::ABSOLUTE_URL),
+                User::class => $this->urlGenerator->generate(
+                    RouteType::Profile,
+                    RouteAction::Get,
+                    ['username' => $data->username],
+                ),
+                Bookmark::class => $this->urlGenerator->generate(
+                    RouteType::ProfileBookmarks,
+                    RouteAction::Get,
+                    ['username' => $data->account->username, 'id' => $data->id],
+                ),
+                UserTag::class => $this->urlGenerator->generate(
+                    RouteType::ProfileTags,
+                    RouteAction::Get,
+                    ['username' => $data->owner->username, 'slug' => $data->slug],
+                ),
                 default => null,
             };
         }
@@ -70,7 +80,7 @@ readonly class IriNormalizer implements NormalizerInterface
     {
         return
             $data instanceof User
-            || $data instanceof Tag;
+            || $data instanceof UserTag;
         // ||$data instanceof Bookmark
         // || $data instanceof FileObject
     }
@@ -82,7 +92,7 @@ readonly class IriNormalizer implements NormalizerInterface
     {
         return [
             User::class => true,
-            Tag::class => true,
+            UserTag::class => true,
             // Bookmark::class => true,
             // FileObject::class => true,
         ];

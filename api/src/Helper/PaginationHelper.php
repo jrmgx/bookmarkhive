@@ -4,7 +4,7 @@ namespace App\Helper;
 
 use Doctrine\ORM\QueryBuilder;
 
-class PaginationHelper
+final readonly class PaginationHelper
 {
     public static function applyPagination(QueryBuilder $qb, ?string $after, int $resultPerPage): QueryBuilder
     {

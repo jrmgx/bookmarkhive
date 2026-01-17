@@ -2,7 +2,7 @@
 
 namespace App\Tests\Service;
 
-use App\Service\AccountFetch;
+use App\ActivityPub\AccountFetch;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;

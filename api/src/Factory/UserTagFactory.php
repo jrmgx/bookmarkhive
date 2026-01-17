@@ -2,18 +2,18 @@
 
 namespace App\Factory;
 
-use App\Entity\Tag;
+use App\Entity\UserTag;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
- * @extends PersistentObjectFactory<Tag>
+ * @extends PersistentObjectFactory<UserTag>
  */
-final class TagFactory extends PersistentObjectFactory
+final class UserTagFactory extends PersistentObjectFactory
 {
     #[\Override]
     public static function class(): string
     {
-        return Tag::class;
+        return UserTag::class;
     }
 
     #[\Override]
@@ -24,13 +24,7 @@ final class TagFactory extends PersistentObjectFactory
 
         return [
             'name' => ucfirst($name),
+            'owner' => UserFactory::new(),
         ];
-    }
-
-    #[\Override]
-    protected function initialize(): static
-    {
-        return $this;
-        // ->afterInstantiate(function(Tag $bookmark): void {})
     }
 }

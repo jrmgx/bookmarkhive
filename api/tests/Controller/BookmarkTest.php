@@ -4,8 +4,9 @@ namespace App\Tests\Controller;
 
 use App\Factory\AccountFactory;
 use App\Factory\BookmarkFactory;
-use App\Factory\TagFactory;
+use App\Factory\InstanceTagFactory;
 use App\Factory\UserFactory;
+use App\Factory\UserTagFactory;
 use App\Tests\BaseApiTestCase;
 use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -17,11 +18,19 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Tag 1']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Tag 2']);
 
-        BookmarkFactory::createMany(3, ['account' => $account, 'tags' => new ArrayCollection([$tag1, $tag2])]);
-        BookmarkFactory::createMany(2, ['account' => $account, 'tags' => new ArrayCollection([$tag1])]);
+        BookmarkFactory::createMany(3, [
+            'account' => $account,
+            'userTags' => new ArrayCollection([$userTag1, $userTag2]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2])]);
+        BookmarkFactory::createMany(2, [
+            'account' => $account,
+            'userTags' => new ArrayCollection([$userTag1]),
+            'instanceTags' => new ArrayCollection([$instanceTag1])]);
 
         $this->assertUnauthorized('GET', '/users/me/bookmarks');
 
@@ -38,17 +47,22 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag One', 'isPublic' => true]);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag Two', 'isPublic' => true]);
-        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag Three', 'isPublic' => true]);
-        $tagPrivate = TagFactory::createOne(['owner' => $user, 'name' => 'Private Tag', 'isPublic' => false]);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag One', 'isPublic' => true]);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag Two', 'isPublic' => true]);
+        $userTag3 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag Three', 'isPublic' => true]);
+        $userTagPrivate = UserTagFactory::createOne(['owner' => $user, 'name' => 'Private Tag', 'isPublic' => false]);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Tag One']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Tag Two']);
+        $instanceTag3 = InstanceTagFactory::createOne(['name' => 'Tag Three']);
+        $instanceTagPrivate = InstanceTagFactory::createOne(['name' => 'Private Tag']);
 
         BookmarkFactory::createOne([
             'account' => $account,
             'title' => 'Bookmark With Tag One, Two, Three, Private (first)',
             'url' => 'https://public.com',
             'isPublic' => true,
-            'tags' => new ArrayCollection([$tag1, $tag2, $tag3, $tagPrivate]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2, $userTag3, $userTagPrivate]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2, $instanceTag3, $instanceTagPrivate]),
         ]);
 
         BookmarkFactory::createOne([
@@ -56,7 +70,8 @@ class BookmarkTest extends BaseApiTestCase
             'title' => 'Bookmark Without Tag One (second)',
             'url' => 'https://public.com',
             'isPublic' => true,
-            'tags' => new ArrayCollection([$tag2, $tag3, $tagPrivate]),
+            'userTags' => new ArrayCollection([$userTag2, $userTag3, $userTagPrivate]),
+            'instanceTags' => new ArrayCollection([$instanceTag2, $instanceTag3, $instanceTagPrivate]),
         ]);
 
         BookmarkFactory::createOne([
@@ -64,7 +79,8 @@ class BookmarkTest extends BaseApiTestCase
             'title' => 'Bookmark With Tag One, Three (third)',
             'url' => 'https://public.com',
             'isPublic' => true,
-            'tags' => new ArrayCollection([$tag1, $tag3]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag3]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag3]),
         ]);
 
         BookmarkFactory::createOne([
@@ -72,7 +88,8 @@ class BookmarkTest extends BaseApiTestCase
             'title' => 'Bookmark With Tag One, Two, Private (fourth)',
             'url' => 'https://public.com',
             'isPublic' => true,
-            'tags' => new ArrayCollection([$tag1, $tag2, $tagPrivate]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2, $userTagPrivate]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2, $instanceTagPrivate]),
         ]);
 
         $this->request('GET', '/users/me/bookmarks?tags=tag-one,tag-two', [
@@ -104,8 +121,8 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
 
         $this->assertUnauthorized('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
@@ -122,8 +139,8 @@ class BookmarkTest extends BaseApiTestCase
                 'title' => 'Test Bookmark',
                 'url' => 'https://example.com',
                 'tags' => [
-                    "/users/me/tags/{$tag1->slug}",
-                    "/users/me/tags/{$tag2->slug}",
+                    "/users/me/tags/{$userTag1->slug}",
+                    "/users/me/tags/{$userTag2->slug}",
                 ],
             ],
         ]);
@@ -142,13 +159,14 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
-        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
-        $tag4 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 4']);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $userTag3 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+        $userTag4 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 4']);
 
         $url = 'https://example.com/test-bookmark';
 
+        // $this->client->enableProfiler();
         $this->request('POST', '/users/me/bookmarks', [
             'headers' => ['Content-Type' => 'application/json'],
             'auth_bearer' => $token,
@@ -156,8 +174,8 @@ class BookmarkTest extends BaseApiTestCase
                 'title' => 'First Bookmark',
                 'url' => $url,
                 'tags' => [
-                    "/users/me/tags/{$tag1->slug}",
-                    "/users/me/tags/{$tag2->slug}",
+                    "/users/me/tags/{$userTag1->slug}",
+                    "/users/me/tags/{$userTag2->slug}",
                 ],
             ],
         ]);
@@ -172,8 +190,8 @@ class BookmarkTest extends BaseApiTestCase
                 'title' => 'Second Bookmark',
                 'url' => $url,
                 'tags' => [
-                    "/users/me/tags/{$tag3->slug}",
-                    "/users/me/tags/{$tag4->slug}",
+                    "/users/me/tags/{$userTag3->slug}",
+                    "/users/me/tags/{$userTag4->slug}",
                 ],
             ],
         ]);
@@ -189,10 +207,10 @@ class BookmarkTest extends BaseApiTestCase
 
         // Verify all tags are present
         $tagSlugs = array_map(fn ($tag) => $tag['slug'], $json['tags']);
-        $this->assertContains($tag1->slug, $tagSlugs, 'Tag 1 should be present');
-        $this->assertContains($tag2->slug, $tagSlugs, 'Tag 2 should be present');
-        $this->assertContains($tag3->slug, $tagSlugs, 'Tag 3 should be present');
-        $this->assertContains($tag4->slug, $tagSlugs, 'Tag 4 should be present');
+        $this->assertContains($userTag1->slug, $tagSlugs, 'Tag 1 should be present');
+        $this->assertContains($userTag2->slug, $tagSlugs, 'Tag 2 should be present');
+        $this->assertContains($userTag3->slug, $tagSlugs, 'Tag 3 should be present');
+        $this->assertContains($userTag4->slug, $tagSlugs, 'Tag 4 should be present');
         $this->assertBookmarkOwnerResponse($json);
     }
 
@@ -336,14 +354,17 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Tag 1']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Tag 2']);
 
         $bookmark = BookmarkFactory::createOne([
             'account' => $account,
             'title' => 'My Bookmark',
             'url' => 'https://example.com',
-            'tags' => new ArrayCollection([$tag1, $tag2]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2]),
         ]);
 
         $this->assertUnauthorized('GET', "/users/me/bookmarks/{$bookmark->id}", [], 'Should not be able to access.');
@@ -368,15 +389,18 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
-        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $userTag3 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Tag 1']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Tag 2']);
 
         $bookmark = BookmarkFactory::createOne([
             'account' => $account,
             'title' => 'Original Title',
             'url' => 'https://original.com',
-            'tags' => new ArrayCollection([$tag1, $tag2]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2]),
         ]);
 
         $this->assertUnauthorized('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
@@ -393,8 +417,8 @@ class BookmarkTest extends BaseApiTestCase
                 'title' => 'Updated Title',
                 'url' => 'https://updated.com', // We can not update url
                 'tags' => [
-                    "/users/me/tags/{$tag2->slug}", // TODO this is wrong full path should be better
-                    "/users/me/tags/{$tag3->slug}",
+                    "/users/me/tags/{$userTag2->slug}", // TODO this is wrong full path should be better
+                    "/users/me/tags/{$userTag3->slug}",
                 ],
             ],
         ]);
@@ -418,15 +442,19 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
-        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $userTag3 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Tag 1']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Tag 2']);
+        $instanceTag3 = InstanceTagFactory::createOne(['name' => 'Tag 3']);
 
         $bookmark = BookmarkFactory::createOne([
             'account' => $account,
             'title' => 'Original Title',
             'url' => 'https://example.com',
-            'tags' => new ArrayCollection([$tag1, $tag2, $tag3]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2, $userTag3]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2, $instanceTag3]),
         ]);
 
         // Verify initial tags
@@ -466,15 +494,18 @@ class BookmarkTest extends BaseApiTestCase
     {
         [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
-        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 1']);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 2']);
+        $userTag3 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag 3']);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Tag 1']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Tag 2']);
 
         $bookmark = BookmarkFactory::createOne([
             'account' => $account,
             'title' => 'Original Title',
             'url' => 'https://example.com',
-            'tags' => new ArrayCollection([$tag1, $tag2]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2]),
         ]);
 
         $this->request('GET', "/users/me/bookmarks/{$bookmark->id}", ['auth_bearer' => $token]);
@@ -482,7 +513,6 @@ class BookmarkTest extends BaseApiTestCase
         $initialJson = $this->getResponseArray();
         $initialTitle = $initialJson['title'];
         $initialUrl = $initialJson['url'];
-        $initialTagSlugs = array_map(fn ($tag) => $tag['slug'], $initialJson['tags']);
 
         // Update only tags
         $this->request('PATCH', "/users/me/bookmarks/{$bookmark->id}", [
@@ -490,8 +520,8 @@ class BookmarkTest extends BaseApiTestCase
             'auth_bearer' => $token,
             'json' => [
                 'tags' => [
-                    "/users/me/tags/{$tag2->slug}",
-                    "/users/me/tags/{$tag3->slug}",
+                    "/users/me/tags/{$userTag2->slug}",
+                    "/users/me/tags/{$userTag3->slug}",
                 ],
             ],
         ]);
@@ -503,9 +533,9 @@ class BookmarkTest extends BaseApiTestCase
         $this->assertIsArray($json['tags']);
         $this->assertCount(2, $json['tags'], 'Tags should be updated');
         $updatedTagSlugs = array_map(fn ($tag) => $tag['slug'], $json['tags']);
-        $this->assertContains($tag2->slug, $updatedTagSlugs, 'Tag 2 should be present');
-        $this->assertContains($tag3->slug, $updatedTagSlugs, 'Tag 3 should be present');
-        $this->assertNotContains($tag1->slug, $updatedTagSlugs, 'Tag 1 should be removed');
+        $this->assertContains($userTag2->slug, $updatedTagSlugs, 'Tag 2 should be present');
+        $this->assertContains($userTag3->slug, $updatedTagSlugs, 'Tag 3 should be present');
+        $this->assertNotContains($userTag1->slug, $updatedTagSlugs, 'Tag 1 should be removed');
 
         // Verify other fields remained unchanged
         $this->assertEquals($initialTitle, $json['title'], 'Title should remain unchanged');
@@ -515,7 +545,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testDeleteOwnBookmark(): void
     {
-        [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
+        [, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
         $bookmark = BookmarkFactory::createOne(['account' => $account]);
 
@@ -582,10 +612,16 @@ class BookmarkTest extends BaseApiTestCase
         $user = UserFactory::createOne(['username' => 'testuser']);
         $account = AccountFactory::createOne(['username' => 'testuser', 'owner' => $user]);
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Public Tag', 'isPublic' => true]);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Another Tag', 'isPublic' => true]);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Public Tag', 'isPublic' => true]);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Another Tag', 'isPublic' => true]);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Public Tag']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Another Tag']);
 
-        BookmarkFactory::createMany(3, ['account' => $account, 'isPublic' => true, 'tags' => new ArrayCollection([$tag1, $tag2])]);
+        BookmarkFactory::createMany(3, [
+            'account' => $account,
+            'isPublic' => true,
+            'userTags' => new ArrayCollection([$userTag1, $userTag2]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2])]);
         BookmarkFactory::createMany(2, ['account' => $account, 'isPublic' => false]);
 
         $this->request('GET', "/profile/{$user->username}/bookmarks");
@@ -602,16 +638,20 @@ class BookmarkTest extends BaseApiTestCase
         $user = UserFactory::createOne(['username' => 'testuser']);
         $account = AccountFactory::createOne(['username' => 'testuser', 'owner' => $user]);
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Public Tag', 'isPublic' => true]);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Another Tag', 'isPublic' => true]);
-        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Private Tag', 'isPublic' => false]);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Public Tag', 'isPublic' => true]);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Another Tag', 'isPublic' => true]);
+        $userTag3 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Private Tag', 'isPublic' => false]);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Public Tag']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Another Tag']);
+        $instanceTag3 = InstanceTagFactory::createOne(['name' => 'Private Tag']);
 
         $publicBookmark = BookmarkFactory::createOne([
             'account' => $account,
             'title' => 'Public Bookmark',
             'url' => 'https://public.com',
             'isPublic' => true,
-            'tags' => new ArrayCollection([$tag1, $tag2, $tag3]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2, $userTag3]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2, $instanceTag3]),
         ]);
 
         $privateBookmark = BookmarkFactory::createOne([
@@ -619,7 +659,8 @@ class BookmarkTest extends BaseApiTestCase
             'title' => 'Private Bookmark',
             'url' => 'https://private.com',
             'isPublic' => false,
-            'tags' => new ArrayCollection([$tag1, $tag2, $tag3]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2, $userTag3]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2, $instanceTag3]),
         ]);
 
         $this->request('GET', "/profile/{$user->username}/bookmarks/{$publicBookmark->id}");
@@ -642,17 +683,22 @@ class BookmarkTest extends BaseApiTestCase
         $user = UserFactory::createOne(['username' => 'testuser']);
         $account = AccountFactory::createOne(['username' => 'testuser', 'owner' => $user]);
 
-        $tag1 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag One', 'isPublic' => true]);
-        $tag2 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag Two', 'isPublic' => true]);
-        $tag3 = TagFactory::createOne(['owner' => $user, 'name' => 'Tag Three', 'isPublic' => true]);
-        $tagPrivate = TagFactory::createOne(['owner' => $user, 'name' => 'Private Tag', 'isPublic' => false]);
+        $userTag1 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag One', 'isPublic' => true]);
+        $userTag2 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag Two', 'isPublic' => true]);
+        $userTag3 = UserTagFactory::createOne(['owner' => $user, 'name' => 'Tag Three', 'isPublic' => true]);
+        $userTagPrivate = UserTagFactory::createOne(['owner' => $user, 'name' => 'Private Tag', 'isPublic' => false]);
+        $instanceTag1 = InstanceTagFactory::createOne(['name' => 'Tag One']);
+        $instanceTag2 = InstanceTagFactory::createOne(['name' => 'Tag Two']);
+        $instanceTag3 = InstanceTagFactory::createOne(['name' => 'Tag Three']);
+        $instanceTagPrivate = InstanceTagFactory::createOne(['name' => 'Private Tag']);
 
         BookmarkFactory::createOne([
             'account' => $account,
             'title' => 'Bookmark With Tag One, Two, Three, Private',
             'url' => 'https://public.com',
             'isPublic' => true,
-            'tags' => new ArrayCollection([$tag1, $tag2, $tag3, $tagPrivate]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag2, $userTag3, $userTagPrivate]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag2, $instanceTag3, $instanceTagPrivate]),
         ]);
 
         BookmarkFactory::createOne([
@@ -660,7 +706,8 @@ class BookmarkTest extends BaseApiTestCase
             'title' => 'Bookmark Without Tag One',
             'url' => 'https://public.com',
             'isPublic' => true,
-            'tags' => new ArrayCollection([$tag2, $tag3, $tagPrivate]),
+            'userTags' => new ArrayCollection([$userTag2, $userTag3, $userTagPrivate]),
+            'instanceTags' => new ArrayCollection([$instanceTag2, $instanceTag3, $instanceTagPrivate]),
         ]);
 
         BookmarkFactory::createOne([
@@ -668,7 +715,8 @@ class BookmarkTest extends BaseApiTestCase
             'title' => 'Bookmark With Tag One, Three, Private',
             'url' => 'https://public.com',
             'isPublic' => true,
-            'tags' => new ArrayCollection([$tag1, $tag3, $tagPrivate]),
+            'userTags' => new ArrayCollection([$userTag1, $userTag3, $userTagPrivate]),
+            'instanceTags' => new ArrayCollection([$instanceTag1, $instanceTag3, $instanceTagPrivate]),
         ]);
 
         $this->request('GET', "/profile/{$user->username}/bookmarks?tags=tag-one,tag-two");
@@ -751,7 +799,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCursorBasedPagination(): void
     {
-        [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
+        [, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
         // Bookmark 120 is the newest (created last)
         for ($i = 1; $i <= 120; ++$i) {
@@ -815,7 +863,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCanNotAccessOtherUsersPrivateBookmark(): void
     {
-        [$owner, $ownerToken, $ownerAccount] = $this->createAuthenticatedUserAccount('owneruser', 'test');
+        [, $ownerToken, $ownerAccount] = $this->createAuthenticatedUserAccount('owneruser', 'test');
         [, $otherToken] = $this->createAuthenticatedUserAccount('otheruser', 'test');
 
         $privateBookmark = BookmarkFactory::createOne([
@@ -836,7 +884,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCanNotEditOtherUsersBookmark(): void
     {
-        [$owner, $ownerToken, $ownerAccount] = $this->createAuthenticatedUserAccount('owneruser', 'test');
+        [, $ownerToken, $ownerAccount] = $this->createAuthenticatedUserAccount('owneruser', 'test');
         [, $otherToken] = $this->createAuthenticatedUserAccount('otheruser', 'test');
 
         $bookmark = BookmarkFactory::createOne([
@@ -869,7 +917,7 @@ class BookmarkTest extends BaseApiTestCase
 
     public function testCanNotDeleteOtherUsersBookmark(): void
     {
-        [$owner, $ownerToken, $ownerAccount] = $this->createAuthenticatedUserAccount('owneruser', 'test');
+        [, $ownerToken, $ownerAccount] = $this->createAuthenticatedUserAccount('owneruser', 'test');
         [, $otherToken] = $this->createAuthenticatedUserAccount('otheruser', 'test');
 
         $bookmark = BookmarkFactory::createOne([

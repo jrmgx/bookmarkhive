@@ -61,7 +61,6 @@ final class MeBookmarkIndexController extends BookmarkController
         return $this->collectionCommon(
             $user->account,
             null,
-            null,
             $afterQueryString,
             ['bookmark:show:private', 'tag:show:private'],
             RouteType::MeBookmarksIndex,

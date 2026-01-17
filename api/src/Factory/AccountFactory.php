@@ -35,8 +35,13 @@ final class AccountFactory extends PersistentObjectFactory
             'username' => self::faker()->userName(),
             'uri' => self::faker()->url(),
             'instance' => $this->instanceHost,
-            'publicKey' => (string) $key->getPublicKey(),
-            'privateKey' => (string) $key,
+            'publicKey' => $key['public'],
+            'privateKey' => $key['private'],
+            'inboxUrl' => self::faker()->url(),
+            'outboxUrl' => self::faker()->url(),
+            'sharedInboxUrl' => self::faker()->url(),
+            'followerUrl' => self::faker()->url(),
+            'followingUrl' => self::faker()->url(),
         ];
     }
 }

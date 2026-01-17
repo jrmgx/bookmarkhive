@@ -44,7 +44,7 @@ class Follower
     }
 
     #[ORM\Column]
-    public FollowStatus $status = FollowStatus::Pending;
+    public FollowStatus $status = FollowStatus::Confirmed;
 
     public function __construct()
     {

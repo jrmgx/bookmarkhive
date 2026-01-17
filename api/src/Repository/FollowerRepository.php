@@ -26,7 +26,6 @@ class FollowerRepository extends ServiceEntityRepository
             ->andWhere('o.owner = :owner')
             ->setParameter('owner', $owner)
             ->addOrderBy('o.id', 'DESC')
-            // TODO we may consider the follow status here
         ;
     }
 }

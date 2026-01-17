@@ -18,4 +18,6 @@ enum RouteAction: string
     case Inbox = 'inbox';
     case Outbox = 'outbox';
     case WellKnown = 'well_known';
+    case Following = 'following';
+    case Follower = 'follower';
 }

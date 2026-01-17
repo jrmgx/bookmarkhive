@@ -11,10 +11,10 @@ use Doctrine\ORM\Mapping as ORM;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[OA\Schema(
     // Serialization groups: ['bookmark:show:private']
@@ -57,7 +57,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new OA\Property(property: '@iri', type: 'string', format: 'iri', description: 'IRI of the bookmark resource'),
     ]
 )]
-#[Context([DateTimeNormalizer::FORMAT_KEY => \DateTime::ATOM])]
+#[Context([DateTimeNormalizer::FORMAT_KEY => \DateTimeInterface::ATOM])]
 #[ORM\Entity(repositoryClass: BookmarkRepository::class)]
 #[ORM\Index(name: 'domain_idx', fields: ['domain'])]
 #[ORM\Index(name: 'instance_idx', fields: ['instance'])]
@@ -75,13 +75,11 @@ class Bookmark
         get => new UuidV7($this->id)->getDateTime();
     }
 
-    #[Groups(['bookmark:show:public', 'bookmark:create', 'bookmark:update', 'bookmark:show:private'])]
-    #[Assert\NotBlank(groups: ['bookmark:create'])]
+    #[Groups(['bookmark:show:public', 'bookmark:show:private'])]
     #[ORM\Column(type: Types::TEXT)]
     public string $title;
 
-    #[Groups(['bookmark:show:public', 'bookmark:create', 'bookmark:show:private'])]
-    #[Assert\NotBlank(groups: ['bookmark:create'])]
+    #[Groups(['bookmark:show:public', 'bookmark:show:private'])]
     #[ORM\Column(type: Types::TEXT)]
     public string $url {
         set {
@@ -91,7 +89,7 @@ class Bookmark
         }
     }
 
-    #[Groups(['bookmark:show:public', 'bookmark:create', 'bookmark:show:private'])]
+    #[Groups(['bookmark:show:public', 'bookmark:show:private'])]
     #[ORM\ManyToOne(targetEntity: FileObject::class)]
     #[ORM\JoinColumn(nullable: true)]
     public ?FileObject $mainImage = null;
@@ -101,7 +99,7 @@ class Bookmark
     #[ORM\JoinColumn(nullable: false)]
     public Account $account;
 
-    #[Groups(['bookmark:create', 'bookmark:show:private'])]
+    #[Groups(['bookmark:show:private'])]
     #[ORM\Column]
     public bool $isPublic = false;
 
@@ -112,15 +110,10 @@ class Bookmark
     #[ORM\Column(type: Types::TEXT)]
     public string $normalizedUrl;
 
-    /** @var Collection<int, Tag>|array<int, Tag> */
-    #[Groups(['bookmark:show:private', 'bookmark:show:public', 'bookmark:create', 'bookmark:update'])]
-    #[ORM\ManyToMany(targetEntity: Tag::class, fetch: 'EAGER')]
-    public Collection|array $tags;
-
     #[ORM\Column]
     public bool $outdated = false;
 
-    #[Groups(['bookmark:show:private', 'bookmark:show:public', 'bookmark:create'])]
+    #[Groups(['bookmark:show:private', 'bookmark:show:public'])]
     #[ORM\ManyToOne(targetEntity: FileObject::class)]
     #[ORM\JoinColumn(nullable: true)]
     public ?FileObject $archive = null;
@@ -129,32 +122,34 @@ class Bookmark
     #[ORM\Column]
     public string $instance;
 
+    /** @var Collection<int, UserTag> */
+    #[SerializedName('tags')]
+    #[Groups(['bookmark:show:private', 'bookmark:show:public'])]
+    #[ORM\ManyToMany(targetEntity: UserTag::class)]
+    public Collection $userTags;
+
+    /** @var Collection<int, InstanceTag> */
+    // #[Groups(['bookmark:show:private', 'bookmark:show:public'])]
+    #[ORM\ManyToMany(targetEntity: InstanceTag::class)]
+    public Collection $instanceTags;
+
     public function __construct()
     {
         $this->id = Uuid::v7()->toString();
-        // We do not set tags here, so it can be unset when used as RequestPayload
-        // Still we will set it to empty in BookmarkNormalizer if needed
-        // $this->tags = new ArrayCollection();
+        $this->userTags = new ArrayCollection();
+        $this->instanceTags = new ArrayCollection();
     }
 
     /**
      * Given a list of tags, add those to the current object preventing doubloon.
      *
-     * @param array<int, Tag>|Collection<int, Tag> $tags
+     * @param Collection<int, UserTag> $tags
      */
-    public function mergeTags(array|Collection $tags): static
+    public function mergeUserTags(Collection $tags): static
     {
-        if (!isset($this->tags)) {
-            $this->tags = new ArrayCollection();
-        }
-
-        if (!($this->tags instanceof Collection)) {
-            $this->tags = new ArrayCollection($this->tags);
-        }
-
         foreach ($tags as $tag) {
-            if (!$this->tags->contains($tag)) {
-                $this->tags->add($tag);
+            if (!$this->userTags->contains($tag)) {
+                $this->userTags->add($tag);
             }
         }
 

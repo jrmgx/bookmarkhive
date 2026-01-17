@@ -171,7 +171,7 @@ class BookmarkIndexTest extends BaseApiTestCase
 
     public function testGetSearchIndexReturnsBookmarks(): void
     {
-        [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
+        [, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
         // Create some bookmarks for the user
         BookmarkFactory::createMany(3, ['account' => $account]);
@@ -191,7 +191,7 @@ class BookmarkIndexTest extends BaseApiTestCase
 
     public function testGetSearchDiffReturnsIndexActions(): void
     {
-        [$user, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
+        [, $token, $account] = $this->createAuthenticatedUserAccount('testuser', 'test');
 
         $bookmarks = BookmarkFactory::createMany(5, ['account' => $account]);
 

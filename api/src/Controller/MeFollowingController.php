@@ -2,6 +2,9 @@
 
 namespace App\Controller;
 
+use App\ActivityPub\AccountFetch;
+use App\ActivityPub\Message\SendFollowMessage;
+use App\ActivityPub\Message\SendUnfollowMessage;
 use App\Config\RouteAction;
 use App\Config\RouteType;
 use App\Entity\Account;
@@ -10,13 +13,14 @@ use App\Entity\User;
 use App\Helper\PaginationHelper;
 use App\Repository\FollowingRepository;
 use App\Response\JsonResponseBuilder;
-use App\Service\AccountFetch;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -28,6 +32,7 @@ final class MeFollowingController extends AbstractController
         private readonly FollowingRepository $followingRepository,
         private readonly AccountFetch $accountFetch,
         private readonly EntityManagerInterface $entityManager,
+        private readonly MessageBusInterface $messageBus,
     ) {
     }
 
@@ -115,7 +120,7 @@ final class MeFollowingController extends AbstractController
             new OA\PathParameter(
                 name: 'usernameWithInstance',
                 description: 'Username of the account to follow (with instance)',
-                schema: new OA\Schema(type: 'string', example: 'johndoe@bookmarkhive.test')
+                schema: new OA\Schema(type: 'string', example: 'janedoe@bookmarkhive.test')
             ),
         ],
         responses: [
@@ -145,15 +150,23 @@ final class MeFollowingController extends AbstractController
                 response: 404,
                 description: 'Account not found'
             ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - follow request already exist'
+            ),
         ]
     )]
-    // TODO usernameWithInstance could be asserted with @?[a-zA-Z0-9]+(@[a-zA-Z0-9.-])? or similar
+    // TODO usernameWithInstance could be asserted with Account::ACCOUNT_REGEX
     #[Route(path: '/{usernameWithInstance}', name: RouteAction::Create->value, methods: ['POST'])]
     public function create(
         #[CurrentUser] User $user,
         string $usernameWithInstance,
     ): JsonResponse {
-        $account = $this->accountFetch->fetch($usernameWithInstance);
+        $account = $this->accountFetch->fetchFromUsernameInstance($usernameWithInstance);
+
+        if ($this->followingRepository->findOneByOwnerAndAccount($user, $account)) {
+            throw new ConflictHttpException('Follow request already exist.');
+        }
 
         $following = new Following();
         $following->owner = $user;
@@ -161,6 +174,8 @@ final class MeFollowingController extends AbstractController
 
         $this->entityManager->persist($following);
         $this->entityManager->flush();
+
+        $this->messageBus->dispatch(new SendFollowMessage($following->id));
 
         return $this->jsonResponseBuilder->single($following, ['following:show:public', 'account:show:public']);
     }
@@ -176,7 +191,7 @@ final class MeFollowingController extends AbstractController
             new OA\PathParameter(
                 name: 'usernameWithInstance',
                 description: 'Username of the account to unfollow',
-                schema: new OA\Schema(type: 'string', example: 'johndoe@bookmarkhive.test')
+                schema: new OA\Schema(type: 'string', example: 'janedoe@bookmarkhive.test')
             ),
         ],
         responses: [
@@ -199,11 +214,13 @@ final class MeFollowingController extends AbstractController
         #[CurrentUser] User $user,
         string $usernameWithInstance,
     ): JsonResponse {
-        $account = $this->accountFetch->fetch($usernameWithInstance);
+        $account = $this->accountFetch->fetchFromUsernameInstance($usernameWithInstance);
         $following = $this->followingRepository->findOneByOwnerAndAccount($user, $account);
         if ($following) {
             $this->entityManager->remove($following);
             $this->entityManager->flush();
+
+            $this->messageBus->dispatch(new SendUnfollowMessage($user->id, $account->id));
         }
 
         return new JsonResponse(status: Response::HTTP_NO_CONTENT);

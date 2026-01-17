@@ -7,6 +7,7 @@ namespace App\Controller;
 use OpenApi\Attributes as OA;
 use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -73,8 +74,16 @@ use Symfony\Component\Routing\Attribute\Route;
         new OA\Property(property: 'message', type: 'string', example: 'JWT Token not found'),
     ]
 )]
-class AppController extends AbstractController
+final class AppController extends AbstractController
 {
+    public function __construct(
+        #[Autowire('%instanceHost%')]
+        private readonly string $instanceHost,
+        #[Autowire('%env(APP_ENV)%')]
+        private readonly string $appEnv,
+    ) {
+    }
+
     /** @return array<mixed> */
     #[Route(path: '/', name: 'index', methods: ['GET'])]
     #[Template('base.html.twig')]
@@ -86,12 +95,25 @@ class AppController extends AbstractController
     #[Route(path: '/docs', name: 'docs')]
     public function docs(): JsonResponse
     {
-        // TODO when prod update the servers def and urls on the fly for the real instance
-        $response = new JsonResponse(file_get_contents(__DIR__ . '/../../openapi.json'), json: true);
-        $response->headers->set('Access-Control-Allow-Origin', '*');
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization');
+        $json = file_get_contents(__DIR__ . '/../../openapi.json');
+        if (!$json) {
+            throw new \RuntimeException();
+        }
 
-        return $response;
+        if ('prod' === $this->appEnv) {
+            $data = json_decode($json, true);
+            $data['servers'] = [['url' => 'https://' . $this->instanceHost, 'description' => 'BookmarkHive API server']];
+            $json = json_encode($data);
+            if (!$json) {
+                throw new \RuntimeException();
+            }
+
+            $json = str_replace('bookmarkhive.test', $this->instanceHost, $json);
+        }
+
+        return new JsonResponse($json, json: true);
+        //        $response->headers->set('Access-Control-Allow-Origin', '*');
+        //        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        //        $response->headers->set('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization');
     }
 }

@@ -4,16 +4,19 @@ namespace App\Helper;
 
 use Symfony\Component\HttpFoundation\Request;
 
-class RequestHelper
+final readonly class RequestHelper
 {
-    public static function accepts(Request $request, string $type): bool
+    /**
+     * @param array<int, string> $types
+     */
+    public static function accepts(Request $request, array $types): bool
     {
-        $accept = $request->headers->get('Accept');
-        if (!$accept) {
-            // Default to application/json if no Accept header is provided
-            return 'application/json' === $type;
+        $accepts = $request->getAcceptableContentTypes();
+
+        if (0 === \count($accepts)) {
+            return false;
         }
 
-        return str_contains($accept, $type);
+        return \count(array_intersect($accepts, $types)) > 0;
     }
 }

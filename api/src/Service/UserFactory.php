@@ -10,14 +10,13 @@ use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class UserFactory
 {
     public function __construct(
         private UserPasswordHasherInterface $passwordHasher,
         private EntityManagerInterface $entityManager,
-        private UrlGeneratorInterface $urlGenerator,
+        private UrlGenerator $urlGenerator,
         private KeysGenerator $keysGenerator,
         #[Autowire('%instanceHost%')]
         private string $instanceHost,
@@ -29,7 +28,7 @@ final readonly class UserFactory
      *
      * @return array{0: User, 1: Account}
      */
-    public function new(string $username, string $password, bool $isPublic = false, array $meta = [])
+    public function new(string $username, string $password, bool $isPublic = false, array $meta = []): array
     {
         $user = new User();
         $user->username = $username;
@@ -38,15 +37,27 @@ final readonly class UserFactory
         $user->setPassword($this->passwordHasher->hashPassword($user, $password));
         $this->entityManager->persist($user);
 
+        $activityPubRoute = fn (RouteAction $action) => $this->urlGenerator->generate(
+            RouteType::ActivityPub, $action,
+            ['username' => $user->username],
+        );
+
         $key = $this->keysGenerator->generate();
         $account = new Account();
-        $account->publicKey = (string) $key->getPublicKey();
-        $account->privateKey = (string) $key;
         $account->username = $user->username;
         $account->instance = $this->instanceHost;
-        $account->uri = $this->urlGenerator->generate(RouteType::Profile->value . RouteAction::Get->value, [
-            'username' => $user->username,
-        ], UrlGeneratorInterface::ABSOLUTE_URL);
+        $account->uri = $this->urlGenerator->generate(
+            RouteType::Profile,
+            RouteAction::Get,
+            ['username' => $user->username],
+        );
+        $account->publicKey = $key['public'];
+        $account->privateKey = $key['private'];
+        $account->inboxUrl = $activityPubRoute(RouteAction::Inbox);
+        $account->outboxUrl = $activityPubRoute(RouteAction::Outbox);
+        $account->sharedInboxUrl = $activityPubRoute(RouteAction::SharedInbox);
+        $account->followerUrl = $activityPubRoute(RouteAction::Follower);
+        $account->followingUrl = $activityPubRoute(RouteAction::Following);
         $this->entityManager->persist($account);
 
         $user->account = $account;

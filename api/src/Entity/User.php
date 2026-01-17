@@ -32,18 +32,6 @@ use Symfony\Component\Validator\Constraints as Assert;
     ]
 )]
 #[OA\Schema(
-    // Serialization groups: ['user:show:public']
-    // Validation groups: ['Default']
-    schema: 'UserShowPublic',
-    description: 'Public user profile',
-    type: 'object',
-    properties: [
-        new OA\Property(property: 'username', type: 'string', description: 'Username'),
-        new OA\Property(property: 'account', type: 'object', description: 'Account associated with the user', ref: '#/components/schemas/AccountShowPublic'),
-        new OA\Property(property: '@iri', type: 'string', format: 'iri', description: 'IRI of the user resource'),
-    ]
-)]
-#[OA\Schema(
     // Serialization groups: ['user:create']
     // Validation groups: ['Default', 'user:create']
     schema: 'UserCreate',
@@ -68,10 +56,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id, ORM\Column(type: 'uuid')]
     public private(set) string $id;
 
-    #[Groups(['user:show:public', 'user:create', 'user:show:private', 'bookmark:show:public', 'bookmark:show:private', 'user:update'])]
+    #[Groups(['user:create', 'user:show:private', 'bookmark:show:public', 'bookmark:show:private', 'user:update'])]
     #[Assert\NotBlank(groups: ['user:create'])]
     #[Assert\Length(min: 3, max: 32)]
-    #[Assert\Regex(pattern: '`^[A-Za-z0-9]+$`')] // TODO document in Open API
+    #[Assert\Regex(pattern: '`^' . Account::USERNAME_REGEX . '$`')] // TODO document in Open API
     #[ORM\Column(length: 32, unique: true)]
     public string $username {
         set {
@@ -95,7 +83,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(options: ['default' => 'initial'])]
     public private(set) string $securityInvalidation = 'initial';
 
-    #[Groups(['user:show:public', 'user:show:private'])]
+    #[Groups(['user:show:private'])]
     #[ORM\OneToOne(mappedBy: 'owner')]
     public Account $account {
         set {

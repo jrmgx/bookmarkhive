@@ -1292,34 +1292,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *     enable_profiler?: bool, // Whether or not to enable the profiler collector to calculate and visualize migration status. This adds some queries overhead. // Default: false
  *     transactional?: bool, // Whether or not to wrap migrations in a single transaction. // Default: true
  * }
- * @psalm-type NelmioCorsConfig = array{
- *     defaults?: array{
- *         allow_credentials?: bool, // Default: false
- *         allow_origin?: list<scalar|null>,
- *         allow_headers?: list<scalar|null>,
- *         allow_methods?: list<scalar|null>,
- *         allow_private_network?: bool, // Default: false
- *         expose_headers?: list<scalar|null>,
- *         max_age?: scalar|null, // Default: 0
- *         hosts?: list<scalar|null>,
- *         origin_regex?: bool, // Default: false
- *         forced_allow_origin_value?: scalar|null, // Default: null
- *         skip_same_as_origin?: bool, // Default: true
- *     },
- *     paths?: array<string, array{ // Default: []
- *         allow_credentials?: bool,
- *         allow_origin?: list<scalar|null>,
- *         allow_headers?: list<scalar|null>,
- *         allow_methods?: list<scalar|null>,
- *         allow_private_network?: bool,
- *         expose_headers?: list<scalar|null>,
- *         max_age?: scalar|null, // Default: 0
- *         hosts?: list<scalar|null>,
- *         origin_regex?: bool,
- *         forced_allow_origin_value?: scalar|null, // Default: null
- *         skip_same_as_origin?: bool,
- *     }>,
- * }
  * @psalm-type MakerConfig = array{
  *     root_namespace?: scalar|null, // Default: "App"
  *     generate_final_classes?: bool, // Default: true
@@ -1709,7 +1681,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *     security?: SecurityConfig,
  *     doctrine?: DoctrineConfig,
  *     doctrine_migrations?: DoctrineMigrationsConfig,
- *     nelmio_cors?: NelmioCorsConfig,
  *     flysystem?: FlysystemConfig,
  *     twig_extra?: TwigExtraConfig,
  *     monolog?: MonologConfig,
@@ -1723,7 +1694,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         security?: SecurityConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
- *         nelmio_cors?: NelmioCorsConfig,
  *         maker?: MakerConfig,
  *         zenstruck_foundry?: ZenstruckFoundryConfig,
  *         nelmio_alice?: NelmioAliceConfig,
@@ -1745,7 +1715,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         security?: SecurityConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
- *         nelmio_cors?: NelmioCorsConfig,
  *         flysystem?: FlysystemConfig,
  *         twig_extra?: TwigExtraConfig,
  *         monolog?: MonologConfig,
@@ -1760,7 +1729,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         security?: SecurityConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
- *         nelmio_cors?: NelmioCorsConfig,
  *         zenstruck_foundry?: ZenstruckFoundryConfig,
  *         dama_doctrine_test?: DamaDoctrineTestConfig,
  *         nelmio_alice?: NelmioAliceConfig,

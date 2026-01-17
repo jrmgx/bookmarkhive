@@ -28,6 +28,7 @@ security:
             jwt: ~
 
     access_control:
+        - { path: ^/debug, roles: PUBLIC_ACCESS } # Dev
         - { path: ^/.well-known, roles: PUBLIC_ACCESS } # ActivityPub related
         - { path: ^/ap/, roles: PUBLIC_ACCESS } # ActivityPub related
         - { path: ^/auth$, roles: PUBLIC_ACCESS } # Allows login

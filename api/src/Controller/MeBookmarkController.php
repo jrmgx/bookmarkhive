@@ -1,15 +1,20 @@
 <?php
 
+/** @noinspection PhpRedundantCatchClauseInspection */
+
 namespace App\Controller;
 
+use App\ActivityPub\Message\SendCreateNoteMessage;
 use App\Config\RouteAction;
 use App\Config\RouteType;
+use App\Dto\BookmarkApiDto;
 use App\Entity\Account;
 use App\Entity\Bookmark;
-use App\Entity\Tag;
 use App\Entity\User;
+use App\Entity\UserTag;
 use App\Enum\BookmarkIndexActionType;
 use App\Security\Voter\BookmarkVoter;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\ORMInvalidArgumentException;
 use OpenApi\Attributes as OA;
@@ -17,6 +22,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -37,11 +43,6 @@ final class MeBookmarkController extends BookmarkController
                 name: 'tags',
                 description: 'Comma-separated list of tag slugs to filter by',
                 schema: new OA\Schema(type: 'string', example: 'tag-one,tag-two')
-            ),
-            new OA\QueryParameter(
-                name: 'q',
-                description: 'Search query string',
-                schema: new OA\Schema(type: 'string')
             ),
             new OA\QueryParameter(
                 name: 'after',
@@ -79,7 +80,7 @@ final class MeBookmarkController extends BookmarkController
                                         'account' => Account::EXAMPLE_ACCOUNT,
                                         'isPublic' => true,
                                         'tags' => [
-                                            Tag::EXAMPLE_TAG,
+                                            UserTag::EXAMPLE_TAG,
                                         ],
                                         'instance' => 'bookmarkhive.test',
                                         '@iri' => Bookmark::EXAMPLE_BOOKMARK_IRI,
@@ -104,13 +105,11 @@ final class MeBookmarkController extends BookmarkController
     public function collection(
         #[CurrentUser] User $user,
         #[MapQueryParameter(name: 'tags')] ?string $tagQueryString = null,
-        #[MapQueryParameter(name: 'q')] ?string $searchQueryString = null,
         #[MapQueryParameter(name: 'after')] ?string $afterQueryString = null,
     ): JsonResponse {
         return $this->collectionCommon(
             $user->account,
             $tagQueryString,
-            $searchQueryString,
             $afterQueryString,
             ['bookmark:show:private', 'tag:show:private'],
             RouteType::MeBookmarks,
@@ -128,23 +127,7 @@ final class MeBookmarkController extends BookmarkController
         requestBody: new OA\RequestBody(
             required: true,
             description: 'Bookmark data',
-            content: new OA\JsonContent(
-                type: 'object',
-                required: ['title', 'url'],
-                properties: [
-                    new OA\Property(property: 'title', type: 'string', description: 'Bookmark title'),
-                    new OA\Property(property: 'url', type: 'string', format: 'uri', description: 'Bookmark URL'),
-                    new OA\Property(property: 'isPublic', type: 'boolean', description: 'Whether the bookmark is public', default: false),
-                    new OA\Property(
-                        property: 'tags',
-                        type: 'array',
-                        description: 'Array of tag IRIs (must be valid IRIs pointing to existing tags owned by the user)',
-                        items: new OA\Items(type: 'string', format: 'iri', example: 'https://bookmarkhive.test/users/me/tags/web-development')
-                    ),
-                    new OA\Property(property: 'mainImage', type: 'string', format: 'iri', nullable: true, description: 'IRI of main image FileObject'),
-                    new OA\Property(property: 'archive', type: 'string', format: 'iri', nullable: true, description: 'IRI of archive FileObject'),
-                ]
-            )
+            content: new OA\JsonContent(ref: '#/components/schemas/BookmarkCreate')
         ),
         responses: [
             new OA\Response(
@@ -164,7 +147,7 @@ final class MeBookmarkController extends BookmarkController
                                 'account' => Account::EXAMPLE_ACCOUNT,
                                 'isPublic' => false,
                                 'tags' => [
-                                    Tag::EXAMPLE_TAG,
+                                    UserTag::EXAMPLE_TAG,
                                 ],
                                 'instance' => 'bookmarkhive.test',
                                 '@iri' => Bookmark::EXAMPLE_BOOKMARK_IRI,
@@ -206,28 +189,39 @@ final class MeBookmarkController extends BookmarkController
             serializationContext: ['groups' => ['bookmark:create']],
             validationGroups: ['Default', 'bookmark:create'],
         )]
-        Bookmark $bookmark,
+        BookmarkApiDto $bookmarkPayload,
     ): JsonResponse {
         // Find previous version and outdate it
         /** @var ?Bookmark $existingBookmark */
-        $existingBookmark = $this->bookmarkRepository->findLastOneByAccountAndUrl($user->account, $bookmark->url)
-            ->getQuery()->getOneOrNullResult()
-        ;
+        $existingBookmark = $this->bookmarkRepository->findLastOneByAccountAndUrl(
+            $user->account,
+            $bookmarkPayload->url ?? throw new BadRequestHttpException()
+        )->getQuery()->getOneOrNullResult();
+
+        $bookmark = new Bookmark();
+        $bookmark->title = $bookmarkPayload->title ?? throw new BadRequestHttpException();
+        $bookmark->url = $bookmarkPayload->url;
+        $bookmark->isPublic = $bookmarkPayload->isPublic ?? false;
+        $bookmark->account = $user->account;
+        $bookmark->instance = $this->instanceHost;
+        $bookmark->userTags = new ArrayCollection($bookmarkPayload->tags);
+        $bookmark->mainImage = $bookmarkPayload->mainImage;
+        $bookmark->archive = $bookmarkPayload->archive;
+
         if ($existingBookmark) {
             $existingBookmark->outdated = true;
 
             $indexAction = $this->indexActionUpdater->update($existingBookmark, BookmarkIndexActionType::Outdated);
             $this->entityManager->persist($indexAction);
 
-            $bookmark->mergeTags($existingBookmark->tags);
+            $bookmark->mergeUserTags($existingBookmark->userTags);
 
             if ($existingBookmark->isPublic) {
                 $bookmark->isPublic = true;
             }
         }
 
-        $bookmark->account = $user->account;
-        $bookmark->instance = $this->instanceHost;
+        $this->instanceTagService->synchronize($bookmark);
 
         try {
             $this->entityManager->persist($bookmark);
@@ -236,6 +230,10 @@ final class MeBookmarkController extends BookmarkController
             $this->entityManager->persist($indexAction);
 
             $this->entityManager->flush();
+
+            if ($bookmark->isPublic && !$existingBookmark) {
+                $this->messageBus->dispatch(new SendCreateNoteMessage($bookmark->id));
+            }
         } catch (ORMInvalidArgumentException|ORMException $e) {
             throw new UnprocessableEntityHttpException(previous: $e);
         }
@@ -353,22 +351,7 @@ final class MeBookmarkController extends BookmarkController
         requestBody: new OA\RequestBody(
             required: false,
             description: 'Bookmark update data',
-            content: new OA\JsonContent(
-                type: 'object',
-                properties: [
-                    new OA\Property(property: 'title', type: 'string', description: 'New bookmark title'),
-                    new OA\Property(property: 'url', type: 'string', format: 'uri', description: 'Ignored - URL cannot be changed after creation', deprecated: true),
-                    new OA\Property(property: 'isPublic', type: 'boolean', description: 'Whether the bookmark is public'),
-                    new OA\Property(
-                        property: 'tags',
-                        type: 'array',
-                        description: 'Array of tag IRIs. If omitted, existing tags are preserved.',
-                        items: new OA\Items(type: 'string', format: 'iri')
-                    ),
-                    new OA\Property(property: 'mainImage', type: 'string', format: 'iri', nullable: true, description: 'IRI of main image FileObject'),
-                    new OA\Property(property: 'archive', type: 'string', format: 'iri', nullable: true, description: 'IRI of archive FileObject'),
-                ]
-            )
+            content: new OA\JsonContent(ref: '#/components/schemas/BookmarkUpdate')
         ),
         responses: [
             new OA\Response(
@@ -410,7 +393,7 @@ final class MeBookmarkController extends BookmarkController
             serializationContext: ['groups' => ['bookmark:update']],
             validationGroups: ['Default', 'bookmark:update'],
         )]
-        Bookmark $bookmarkPayload,
+        BookmarkApiDto $bookmarkPayload,
     ): JsonResponse {
         // Manual merge
         if (isset($bookmarkPayload->title)) {
@@ -419,9 +402,18 @@ final class MeBookmarkController extends BookmarkController
         if (isset($bookmarkPayload->isPublic)) {
             $bookmark->isPublic = $bookmarkPayload->isPublic;
         }
-        if (isset($bookmarkPayload->tags)) {
-            $bookmark->tags = $bookmarkPayload->tags;
+        if (\count($bookmarkPayload->tags) > 0) {
+            /* @phpstan-ignore-next-line $bookmarkPayload->tags is an array of UserTag as denormalized by IriDenormalizer */
+            $bookmark->userTags = new ArrayCollection($bookmarkPayload->tags);
         }
+        //        if (isset($bookmarkPayload->mainImage)) {
+        //            $bookmark->mainImage = $bookmarkPayload->mainImage;
+        //        }
+        //        if (isset($bookmarkPayload->archive)) {
+        //            $bookmark->archive = $bookmarkPayload->archive;
+        //        }
+
+        $this->instanceTagService->synchronize($bookmark);
 
         try {
             $indexAction = $this->indexActionUpdater->update($bookmark, BookmarkIndexActionType::Updated);

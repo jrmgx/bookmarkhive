@@ -2,7 +2,7 @@
 
 namespace App\Naming;
 
-class HashAndSubdirectories
+final readonly class HashAndSubdirectories
 {
     private const string ALGORITHM = 'sha256';
     private const int LENGTH = 50;

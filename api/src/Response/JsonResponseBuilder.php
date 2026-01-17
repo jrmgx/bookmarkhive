@@ -7,10 +7,10 @@ use Symfony\Component\Serializer\Context\Normalizer\ObjectNormalizerContextBuild
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
-class JsonResponseBuilder
+final readonly class JsonResponseBuilder
 {
     public function __construct(
-        private readonly DenormalizerInterface&NormalizerInterface $serializer,
+        private DenormalizerInterface&NormalizerInterface $serializer,
     ) {
     }
 

@@ -100,7 +100,6 @@ class UserTest extends BaseApiTestCase
 
         $this->assertUnauthorized('DELETE', '/users/me', [], 'Deletion authorized but it should not.');
 
-        $this->client->enableProfiler();
         $this->request('DELETE', '/users/me', [
             'auth_bearer' => $token,
         ]);
@@ -416,7 +415,7 @@ class UserTest extends BaseApiTestCase
     private function assertAccountResponse(array $json): void
     {
         $userFields = array_keys($json);
-        $expectedUserFields = ['username', '@iri', 'instance'];
+        $expectedUserFields = ['username', '@iri', 'instance', 'inboxUrl', 'outboxUrl', 'sharedInboxUrl', 'followerUrl', 'followingUrl'];
         $this->assertEqualsCanonicalizing(
             $expectedUserFields,
             array_values($userFields),
@@ -425,6 +424,13 @@ class UserTest extends BaseApiTestCase
 
         $this->assertArrayHasKey('@iri', $json);
         $this->assertValidUrl($json['@iri'], '@iri should be a valid URL');
+
+        // URL fields are nullable, but if present should be valid URLs
+        foreach (['inboxUrl', 'outboxUrl', 'sharedInboxUrl', 'followerUrl', 'followingUrl'] as $urlField) {
+            if (null !== $json[$urlField]) {
+                $this->assertValidUrl($json[$urlField], "{$urlField} should be a valid URL if present");
+            }
+        }
     }
 
     /**

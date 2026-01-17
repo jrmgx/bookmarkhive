@@ -44,12 +44,24 @@ class FollowerTest extends BaseApiTestCase
             );
 
             // Assert account structure
-            $this->assertArrayHasKey('username', $follower['account']);
+            $accountFields = array_keys($follower['account']);
+            $expectedAccountFields = ['username', '@iri', 'instance', 'inboxUrl', 'outboxUrl', 'sharedInboxUrl', 'followerUrl', 'followingUrl'];
+            $this->assertEqualsCanonicalizing(
+                $expectedAccountFields,
+                array_values($accountFields),
+                'Account should contain exactly ' . implode(', ', $expectedAccountFields) . ' fields'
+            );
+
             $this->assertIsString($follower['account']['username']);
-            $this->assertArrayHasKey('instance', $follower['account']);
             $this->assertIsString($follower['account']['instance']);
-            $this->assertArrayHasKey('@iri', $follower['account']);
             $this->assertValidUrl($follower['account']['@iri'], 'account @iri should be a valid URL');
+
+            // URL fields are nullable, but if present should be valid URLs
+            foreach (['inboxUrl', 'outboxUrl', 'sharedInboxUrl', 'followerUrl', 'followingUrl'] as $urlField) {
+                if (null !== $follower['account'][$urlField]) {
+                    $this->assertValidUrl($follower['account'][$urlField], "account {$urlField} should be a valid URL if present");
+                }
+            }
         }
     }
 }
