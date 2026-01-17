@@ -107,10 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Validate URL format
+        // Validate URL format and add https:// if no protocol
         let normalizedUrl: string;
         try {
-            normalizedUrl = instanceUrl.replace(/\/$/, '');
+            normalizedUrl = instanceUrl;
+            // Add https:// if no protocol is provided
+            if (!/^https?:\/\//i.test(normalizedUrl)) {
+                normalizedUrl = `https://${normalizedUrl}`;
+            }
+            normalizedUrl = normalizedUrl.replace(/\/$/, '');
             new URL(normalizedUrl);
         } catch (error) {
             showStatus('Please enter a valid URL (e.g., https://bookmarkhive.test)', 'error');

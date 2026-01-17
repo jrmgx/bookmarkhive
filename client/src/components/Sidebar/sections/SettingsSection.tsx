@@ -1,7 +1,16 @@
+import { useNavigate } from 'react-router-dom';
 import { SidebarSection } from '../SidebarSection';
 import { SidebarAction } from '../SidebarAction';
+import { logout } from '../../../services/auth';
 
 export const SettingsSection = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   return (
     <SidebarSection
       title="Account"
@@ -14,6 +23,10 @@ export const SettingsSection = () => {
       <SidebarAction
         label="Settings"
         onClick={() => {}}
+      />
+      <SidebarAction
+        label="Logout"
+        onClick={handleLogout}
       />
     </SidebarSection>
   );

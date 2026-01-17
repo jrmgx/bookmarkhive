@@ -63,8 +63,12 @@ export const Login = () => {
         return;
       }
 
-      // Normalize instance URL (remove trailing slash)
-      const normalizedUrl = instanceUrl.trim().replace(/\/$/, '');
+      // Normalize instance URL (add https:// if no protocol, remove trailing slash)
+      let normalizedUrl = instanceUrl.trim();
+      if (!/^https?:\/\//i.test(normalizedUrl)) {
+        normalizedUrl = `https://${normalizedUrl}`;
+      }
+      normalizedUrl = normalizedUrl.replace(/\/$/, '');
 
       const token = await login(normalizedUrl, username, password);
       setToken(token);
@@ -105,7 +109,7 @@ export const Login = () => {
                       Instance URL
                     </label>
                     <input
-                      type="url"
+                      type="text"
                       className="form-control"
                       id="instanceUrl"
                       value={instanceUrl}

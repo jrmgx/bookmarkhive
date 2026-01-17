@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tag } from '../components/Tag/Tag';
 import { Bookmark } from '../components/Bookmark/Bookmark';
@@ -37,16 +37,46 @@ export const Home = () => {
   const [indexedBookmarks, setIndexedBookmarks] = useState<BookmarkType[]>([]);
   const [isIndexing, setIsIndexing] = useState(false);
   const [indexingProgress, setIndexingProgress] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  // Initialize search query from URL params
+  const initialSearchQuery = searchParams.get('search') || '';
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(initialSearchQuery);
   const [searchResults, setSearchResults] = useState<BookmarkType[] | null>(null);
   const [searchAvailable, setSearchAvailable] = useState(false);
+  const hasAttemptedLoadRef = useRef(false);
+  const indexedBookmarksRef = useRef<BookmarkType[]>([]);
+  const isUpdatingFromUserInputRef = useRef(false);
+  const lastSyncedSearchParamRef = useRef<string>(initialSearchQuery);
 
   const tagQueryString = searchParams.get('tags') || '';
-  const selectedTagSlugs = tagQueryString ? tagQueryString.split(',').filter(Boolean) : [];
+  const selectedTagSlugs = useMemo(
+    () => (tagQueryString ? tagQueryString.split(',').filter(Boolean) : []),
+    [tagQueryString]
+  );
   const selectedTags = tags.filter((tag) => selectedTagSlugs.includes(tag.slug));
   const layout = layoutForTags(selectedTags);
   const isLayoutImage = layout === LAYOUT_IMAGE;
+
+  // Sync search query with URL params (e.g., when navigating back)
+  useEffect(() => {
+    // Skip if we're updating from user input to avoid redundant updates
+    if (isUpdatingFromUserInputRef.current) {
+      isUpdatingFromUserInputRef.current = false;
+      // Update ref to track what we just set
+      const searchParam = searchParams.get('search') || '';
+      lastSyncedSearchParamRef.current = searchParam;
+      return;
+    }
+    const searchParam = searchParams.get('search') || '';
+    // Only sync if the param actually changed (to avoid unnecessary updates)
+    if (searchParam !== lastSyncedSearchParamRef.current) {
+      setSearchQuery(searchParam);
+      // Also update debounced query immediately when syncing from URL (no debounce delay)
+      setDebouncedSearchQuery(searchParam);
+      lastSyncedSearchParamRef.current = searchParam;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Sync when URL params change (e.g., browser back button)
 
   // Determine which bookmarks to display
   const displayBookmarks = debouncedSearchQuery.trim() ? (searchResults || []) : bookmarks;
@@ -82,10 +112,39 @@ export const Home = () => {
     loadData();
   }, [loadData]);
 
+  // Ensure search query is synced from URL on mount (in case component remounts)
+  useEffect(() => {
+    const searchParam = searchParams.get('search') || '';
+    if (searchParam && searchQuery !== searchParam) {
+      setSearchQuery(searchParam);
+      setDebouncedSearchQuery(searchParam);
+      lastSyncedSearchParamRef.current = searchParam;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
   // Check if search is available on mount
   useEffect(() => {
     setSearchAvailable(isSearchAvailable());
   }, []);
+
+  // Load indexed bookmarks from IndexedDB when search is available and we don't have them yet
+  useEffect(() => {
+    if (!searchAvailable || hasAttemptedLoadRef.current) {
+      return;
+    }
+
+    const loadIndexedBookmarks = async () => {
+      hasAttemptedLoadRef.current = true;
+      const stored = await getIndexedBookmarks();
+      if (stored && stored.length > 0) {
+        indexedBookmarksRef.current = stored;
+        setIndexedBookmarks(stored);
+      }
+    };
+
+    loadIndexedBookmarks();
+  }, [searchAvailable]);
 
   // Index all bookmarks in the background
   const startIndexing = useCallback(async () => {
@@ -97,6 +156,7 @@ export const Home = () => {
     // Check if already indexed
     const existingIndex = await getIndexedBookmarks();
     if (existingIndex && existingIndex.length > 0) {
+      indexedBookmarksRef.current = existingIndex;
       setIndexedBookmarks(existingIndex);
       // Try to sync in the background
       syncBookmarkIndex().catch((err) => {
@@ -112,6 +172,7 @@ export const Home = () => {
       const indexed = await indexAllBookmarks((progress) => {
         setIndexingProgress(progress);
       });
+      indexedBookmarksRef.current = indexed;
       setIndexedBookmarks(indexed);
     } catch (err: unknown) {
       console.error('Failed to index bookmarks:', err);
@@ -135,9 +196,11 @@ export const Home = () => {
         );
         // Also update indexed bookmarks if they exist
         if (indexedBookmarks.length > 0) {
-          setIndexedBookmarks((prevIndexed) =>
-            prevIndexed.map((b) => (b.id === updatedBookmark.id ? updatedBookmark : b))
-          );
+          setIndexedBookmarks((prevIndexed) => {
+            const updated = prevIndexed.map((b) => (b.id === updatedBookmark.id ? updatedBookmark : b));
+            indexedBookmarksRef.current = updated;
+            return updated;
+          });
         }
       } else {
         // Fallback: if no bookmark data provided, reload all (for other update scenarios)
@@ -150,11 +213,12 @@ export const Home = () => {
         try {
           const synced = await syncBookmarkIndex();
           if (synced) {
-            // Reload indexed bookmarks if sync was successful
-            const updatedIndex = await getIndexedBookmarks();
-            if (updatedIndex) {
-              setIndexedBookmarks(updatedIndex);
-            }
+          // Reload indexed bookmarks if sync was successful
+          const updatedIndex = await getIndexedBookmarks();
+          if (updatedIndex) {
+            indexedBookmarksRef.current = updatedIndex;
+            setIndexedBookmarks(updatedIndex);
+          }
           }
         } catch (err) {
           console.error('Failed to sync bookmark index after update:', err);
@@ -219,6 +283,11 @@ export const Home = () => {
     };
   }, [searchQuery]);
 
+  // Update ref whenever indexedBookmarks changes
+  useEffect(() => {
+    indexedBookmarksRef.current = indexedBookmarks;
+  }, [indexedBookmarks]);
+
   // Handle search query changes (using debounced query)
   useEffect(() => {
     if (!searchAvailable) {
@@ -231,33 +300,56 @@ export const Home = () => {
       return;
     }
 
-    const performSearch = async () => {
-      if (indexedBookmarks.length === 0) {
-        // Try to load from IndexedDB if available
-        const stored = await getIndexedBookmarks();
-        if (stored) {
-          setIndexedBookmarks(stored);
-          const results = searchBookmarks(debouncedSearchQuery, stored);
-          setSearchResults(results);
-        } else {
-          setSearchResults([]);
-        }
-      } else {
-        const results = searchBookmarks(debouncedSearchQuery, indexedBookmarks);
-        setSearchResults(results);
-      }
-    };
+    // Use ref to avoid dependency on indexedBookmarks array
+    const currentIndexed = indexedBookmarksRef.current;
+    if (currentIndexed.length === 0) {
+      setSearchResults([]);
+      return;
+    }
 
-    performSearch();
-  }, [debouncedSearchQuery, indexedBookmarks, searchAvailable]);
+    const results = searchBookmarks(debouncedSearchQuery, currentIndexed, selectedTagSlugs);
+    setSearchResults(results);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchQuery, searchAvailable, selectedTagSlugs]); // indexedBookmarks intentionally omitted to avoid infinite loop
+
+  // Re-run search when indexedBookmarks becomes available (using length to avoid infinite loop)
+  useEffect(() => {
+    if (!searchAvailable || !debouncedSearchQuery.trim() || indexedBookmarks.length === 0) {
+      return;
+    }
+
+    // Use ref to get latest indexed bookmarks
+    const currentIndexed = indexedBookmarksRef.current;
+    if (currentIndexed.length === 0) {
+      return;
+    }
+
+    const results = searchBookmarks(debouncedSearchQuery, currentIndexed, selectedTagSlugs);
+    setSearchResults(results);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indexedBookmarks.length, debouncedSearchQuery, selectedTagSlugs]); // Re-run when indexed bookmarks become available or search query changes
 
   const handleSearchChange = (query: string) => {
+    isUpdatingFromUserInputRef.current = true;
     setSearchQuery(query);
+    // Update URL params with search query
+    const newParams = new URLSearchParams(searchParams);
+    if (query.trim()) {
+      newParams.set('search', query);
+    } else {
+      newParams.delete('search');
+    }
+    setSearchParams(newParams, { replace: true });
   };
 
   const handleSearchClear = () => {
+    isUpdatingFromUserInputRef.current = true;
     setSearchQuery('');
     setSearchResults(null);
+    // Remove search from URL params
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('search');
+    setSearchParams(newParams, { replace: true });
   };
 
   const loadMoreBookmarks = useCallback(async () => {
@@ -307,6 +399,10 @@ export const Home = () => {
 
   const handleShow = (id: string) => {
     const params = updateTagParams(selectedTagSlugs, new URLSearchParams());
+    // Preserve search query when navigating to bookmark show page
+    if (searchQuery.trim()) {
+      params.set('search', searchQuery);
+    }
     navigate(`/me/bookmarks/${id}${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
@@ -334,6 +430,9 @@ export const Home = () => {
                   ? `Indexing... ${indexingProgress}%`
                   : 'Search bookmarks...'
               }
+              selectedTags={selectedTags}
+              selectedTagSlugs={selectedTagSlugs}
+              onTagToggle={handleTagToggle}
             />
           )}
 

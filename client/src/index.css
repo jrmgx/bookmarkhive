@@ -240,6 +240,10 @@ iframe.peertube-player {
   position: absolute;
   top: calc(-8px + -22px);
   left: 8px;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Image container styles for masonry layout */

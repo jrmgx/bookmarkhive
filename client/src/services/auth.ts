@@ -53,3 +53,17 @@ export const isAuthenticated = (): boolean => {
   const TOKEN_KEY = 'jwt_token';
   return localStorage.getItem(TOKEN_KEY) !== null;
 };
+
+import { clearIndex } from './bookmarkIndex';
+
+/**
+ * Logout user by clearing all session data
+ * Clears token and bookmark index
+ */
+export const logout = async (): Promise<void> => {
+  // Clear authentication token
+  await clearToken();
+
+  // Clear bookmark index (IndexedDB and localStorage)
+  await clearIndex();
+};

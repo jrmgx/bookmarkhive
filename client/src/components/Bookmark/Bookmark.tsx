@@ -76,7 +76,7 @@ export const Bookmark = ({
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
-    if (img.naturalWidth <= 64 || img.naturalHeight <= 64) {
+    if (img.naturalWidth <= 76 || img.naturalHeight <= 76) {
       setIsSmallImage(true);
     }
   };
@@ -192,7 +192,10 @@ export const Bookmark = ({
               rel="noopener noreferrer"
               title={bookmark.title}
             >
-              <small className={`badge me-2 rounded-pill text-bg-light border fw-light ${isEmbedded ? '' : 'domain-pill'}`}>
+              <small 
+                className={`badge me-2 rounded-pill text-bg-light border fw-light ${isEmbedded ? '' : 'domain-pill'}`}
+                title={bookmark.domain}
+              >
                 {bookmark.domain}
               </small>
               {bookmark.title}

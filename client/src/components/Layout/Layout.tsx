@@ -103,6 +103,11 @@ export const Layout = () => {
 
   const handleNavigateBack = () => {
     const params = updateTagParams(selectedTagSlugs, new URLSearchParams());
+    // Preserve search query when navigating back
+    const searchQuery = searchParams.get('search') || '';
+    if (searchQuery.trim()) {
+      params.set('search', searchQuery);
+    }
     if (isProfileMode) {
       navigate(`/profile/${profileIdentifier}?${params.toString()}`);
     } else {

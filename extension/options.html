@@ -67,8 +67,7 @@
         }
 
         .form-group input[type="text"],
-        .form-group input[type="password"],
-        .form-group input[type="url"] {
+        .form-group input[type="password"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -79,8 +78,7 @@
         }
 
         .form-group input[type="text"]:focus,
-        .form-group input[type="password"]:focus,
-        .form-group input[type="url"]:focus {
+        .form-group input[type="password"]:focus {
             outline: none;
             border-color: #007bff;
         }
@@ -198,7 +196,7 @@
             <form id="loginForm" class="login-form">
                 <div class="form-group">
                     <label for="instanceUrl">Instance URL</label>
-                    <input type="url" id="instanceUrl" name="instanceUrl" required>
+                    <input type="text" id="instanceUrl" name="instanceUrl" required>
                     <small style="color: #666; font-size: 12px; margin-top: 4px; display: block;">Enter your BookmarkHive instance URL</small>
                 </div>
 

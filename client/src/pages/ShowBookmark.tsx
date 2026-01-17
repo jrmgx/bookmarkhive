@@ -163,9 +163,14 @@ export const ShowBookmark = () => {
   if (error || !bookmark) {
     const tagQueryString = searchParams.get('tags') || '';
     const selectedTagSlugs = tagQueryString ? tagQueryString.split(',').filter(Boolean) : [];
+    const searchQuery = searchParams.get('search') || '';
 
     const handleGoBack = () => {
       const params = updateTagParams(selectedTagSlugs, new URLSearchParams());
+      // Preserve search query when navigating back
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery);
+      }
       navigate(`/me?${params.toString()}`);
     };
 
@@ -184,10 +189,15 @@ export const ShowBookmark = () => {
 
   const tagQueryString = searchParams.get('tags') || '';
   const selectedTagSlugs = tagQueryString ? tagQueryString.split(',').filter(Boolean) : [];
+  const searchQuery = searchParams.get('search') || '';
 
   const handleTagToggle = (slug: string) => {
     const newSelectedSlugs = toggleTag(slug, selectedTagSlugs);
     const newParams = updateTagParams(newSelectedSlugs, new URLSearchParams());
+    // Preserve search query when navigating back
+    if (searchQuery.trim()) {
+      newParams.set('search', searchQuery);
+    }
     navigate(`/me?${newParams.toString()}`);
   };
 
